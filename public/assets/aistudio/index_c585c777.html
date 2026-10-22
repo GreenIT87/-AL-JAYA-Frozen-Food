@@ -1,0 +1,2365 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>²AL JAYA Frozen Food - POS & Stok</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*{font-family:'Plus Jakarta Sans',sans-serif}
+.mono{font-family:'JetBrains Mono',monospace}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-thumb{background:#0e5a8a;border-radius:99px}
+.no-scrollbar::-webkit-scrollbar{display:none}
+.card-shadow{box-shadow:0 8px 30px rgba(10,77,122,.12)}
+.frost{background:linear-gradient(135deg,#eaf6fc 0%,#fff 55%)}
+.active-nav{background:#0A4D7A!important;color:#fff!important}
+.chip-active{background:#0A4D7A;color:#fff}
+.thermal{width:58mm;max-width:302px;background:#fff;color:#000;font-family:'JetBrains Mono',monospace}
+.thermal img{filter:grayscale(1) contrast(1.2)}
+.jagged{height:10px;background:linear-gradient(-45deg,transparent 8px,#fff 0) 0 0/16px 16px repeat-x,linear-gradient(45deg,transparent 8px,#fff 0) 8px 0/16px 16px repeat-x;transform:rotate(180deg)}
+@media print{
+ @page{size:58mm auto;margin:0}
+ body>*{display:none!important}
+ #printArea{display:block!important;position:absolute;left:0;top:0;width:58mm;padding:4mm 3mm;background:#fff}
+ #printArea *{visibility:visible}
+}
+#printArea{display:none}
+input:focus,select:focus,textarea:focus{outline:2px solid #2A9AC6;outline-offset:1px}
+.product-img{aspect-ratio:4/3;object-fit:cover}
+.snow{position:absolute;color:#bfe6f7;animation:fall linear infinite}
+@keyframes fall{to{transform:translateY(110vh) rotate(360deg)}}
+</style>
+</head>
+<body class="bg-[#F2F8FC] text-slate-800">
+
+<!-- TOAST -->
+<div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] hidden"><div class="bg-[#0A4D7A] text-white px-5 py-3 rounded-full shadow-xl flex items-center gap-2 text-sm font-bold"><i class="fa-solid fa-circle-check text-cyan-300"></i><span id="toastMsg">Berhasil</span></div></div>
+
+<!-- LOGIN -->
+<div id="loginView" class="min-h-screen relative overflow-hidden bg-[#0A4D7A] flex items-center justify-center p-4">
+  <div class="absolute inset-0 opacity-20" style="background:radial-gradient(600px 300px at 20% 20%,#2A9AC6,transparent),radial-gradient(600px 300px at 90% 90%,#fff,transparent)"></div>
+  <span class="snow text-2xl" style="left:10%;animation-duration:9s">❄</span><span class="snow text-xl" style="left:35%;animation-duration:12s;animation-delay:1s">❄</span><span class="snow text-3xl" style="left:70%;animation-duration:10s">❄</span><span class="snow text-lg" style="left:88%;animation-duration:13s">❄</span>
+  <div class="relative w-full max-w-[980px] grid md:grid-cols-2 bg-white rounded-[28px] overflow-hidden shadow-2xl">
+    <div class="p-6 md:p-8 bg-white flex flex-col items-center justify-center text-center border-r">
+      <img src="https://www.designarena.ai/u/1b8ed177-6347-4a72-a4ca-28aec7d3b171" class="w-[85%] max-w-[340px] object-contain" alt="logo">
+      <div class="flex flex-wrap justify-center gap-2 mt-4">
+        <span class="bg-cyan-100 text-[#0A4D7A] text-[11px] font-extrabold px-3 py-1.5 rounded-full">❄ FROZEN • FRESH • HALAL</span>
+        <span id="loginSheetsBadge" class="bg-amber-100 text-amber-800 text-[11px] font-extrabold px-3 py-1.5 rounded-full flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+          <span>Google Sheets Ready</span>
+        </span>
+      </div>
+      <p class="text-[13px] text-slate-500 mt-4 leading-relaxed">Sistem Kasir, Stok & Database Google Sheets<br>Printer Thermal AT-58X & Barcode Scanner.</p>
+      
+      <div class="grid grid-cols-3 gap-2 w-full mt-5 text-center">
+        <button onclick="fillLogin('admin','admin123')" class="bg-slate-50 hover:bg-slate-100 p-2.5 rounded-xl border border-slate-200 transition text-left">
+          <div class="flex items-center gap-1.5 text-xs font-black text-[#0A4D7A]"><i class="fa-solid fa-user-shield text-cyan-600"></i> Admin</div>
+          <p class="text-[10px] text-slate-400 font-mono mt-0.5">admin / 123</p>
+        </button>
+        <button onclick="fillLogin('kasir','kasir123')" class="bg-slate-50 hover:bg-slate-100 p-2.5 rounded-xl border border-slate-200 transition text-left">
+          <div class="flex items-center gap-1.5 text-xs font-black text-emerald-700"><i class="fa-solid fa-user-check text-emerald-500"></i> Kasir</div>
+          <p class="text-[10px] text-slate-400 font-mono mt-0.5">kasir / 123</p>
+        </button>
+        <button onclick="fillLogin('budi','budi123')" class="bg-slate-50 hover:bg-slate-100 p-2.5 rounded-xl border border-slate-200 transition text-left">
+          <div class="flex items-center gap-1.5 text-xs font-black text-amber-700"><i class="fa-solid fa-boxes-stacked text-amber-500"></i> Gudang</div>
+          <p class="text-[10px] text-slate-400 font-mono mt-0.5">budi / 123</p>
+        </button>
+      </div>
+    </div>
+    
+    <div class="p-6 md:p-8">
+      <h1 class="text-[26px] leading-7 font-black text-[#0A3A5E]">Selamat Datang 👋<br><span class="text-[#1590C8]">Login Kasir</span></h1>
+      <p class="text-xs text-slate-500 mt-1">Masuk untuk mengelola toko <b>²AL JAYA</b></p>
+      <form id="loginForm" class="mt-6 space-y-4">
+        <div><label class="text-xs font-bold">Username</label><div class="flex items-center gap-2 border rounded-2xl px-3 mt-1 bg-slate-50"><i class="fa fa-user text-slate-400 text-sm"></i><input id="loginUser" value="admin" class="w-full py-3 bg-transparent text-sm font-semibold" placeholder="admin"></div></div>
+        <div><label class="text-xs font-bold">Password</label><div class="flex items-center gap-2 border rounded-2xl px-3 mt-1 bg-slate-50"><i class="fa fa-lock text-slate-400 text-sm"></i><input id="loginPass" type="password" value="admin123" class="w-full py-3 bg-transparent text-sm font-semibold" placeholder="••••••••"><button type="button" onclick="togglePass()" class="text-slate-400"><i id="eyeIcon" class="fa fa-eye"></i></button></div></div>
+        <div class="flex justify-between text-xs"><label class="flex gap-1.5 items-center"><input type="checkbox" checked class="accent-[#0A4D7A]"> Ingat saya</label><a href="#" onclick="showToast('Hubungi Admin: WA 0812-3456-7890');return false" class="text-[#0A6FA8] font-bold">Lupa password?</a></div>
+        <button class="w-full bg-[#0A4D7A] hover:bg-[#083a5e] text-white py-3.5 rounded-2xl font-extrabold text-sm shadow-lg shadow-blue-900/20">MASUK KE APLIKASI →</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appView" class="hidden pb-24 md:pb-6">
+  <!-- HEADER -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b">
+    <div class="max-w-7xl mx-auto px-3 md:px-5 h-[68px] flex items-center gap-3">
+      <img src="https://www.designarena.ai/u/1b8ed177-6347-4a72-a4ca-28aec7d3b171" class="h-11 w-[110px] object-contain object-left" alt="logo">
+      <div class="hidden sm:block leading-none"><p class="font-black text-[#0A4D7A] text-[15px]">²AL JAYA <span class="text-[#1590C8] font-bold text-xs block tracking-widest mt-0.5">FROZEN FOOD • POS SYSTEM</span></p></div>
+      <div class="flex-1 hidden md:flex max-w-md mx-auto"><div class="flex w-full items-center bg-slate-100 rounded-full px-3 py-2 gap-2"><i class="fa fa-search text-slate-400 text-xs"></i><input id="globalSearch" oninput="onGlobalSearch(this.value)" placeholder="Cari nugget, sosis, bakso..." class="bg-transparent w-full text-sm outline-none"></div></div>
+      
+      <!-- Sheets Sync Badge Button -->
+      <button onclick="showView('sheets')" id="syncStatusBtn" class="hidden md:flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-2 rounded-full text-xs font-bold">
+        <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" id="syncStatusDot"></span>
+        <span id="syncLabel">Sheets: Aktif</span>
+        <i class="fa fa-rotate"></i>
+      </button>
+
+      <!-- AT-58X Printer Status Indicator -->
+      <button onclick="openBTPrinterModal()" class="hidden lg:flex items-center gap-1.5 bg-sky-50 text-sky-800 border border-sky-200 px-3 py-2 rounded-full text-xs font-bold hover:bg-sky-100 transition">
+        <i class="fa-solid fa-print text-sky-600"></i>
+        <span id="btPrinterLabel">Printer AT-58X</span>
+      </button>
+
+      <!-- Cart Button -->
+      <button onclick="showView('pos')" class="relative bg-[#FF6B35] text-white px-3 py-2 rounded-full text-xs font-extrabold"><i class="fa fa-cart-shopping"></i> <span class="hidden sm:inline">Kasir</span> <span id="cartBadge" class="absolute -top-1 -right-1 bg-[#0A4D7A] text-white text-[10px] w-5 h-5 grid place-items-center rounded-full">0</span></button>
+      
+      <!-- User Icon Profile Badge (No external photo) -->
+      <div class="flex items-center gap-2 cursor-pointer p-1 rounded-full hover:bg-slate-100 transition" onclick="showView('users')">
+        <div id="headerUserIcon" class="w-9 h-9 rounded-full bg-[#0A4D7A] text-cyan-300 border-2 border-cyan-400 grid place-items-center shadow-sm shrink-0">
+          <i class="fa-solid fa-user-shield text-sm"></i>
+        </div>
+        <div class="hidden lg:block leading-none">
+          <p id="currentUserName" class="text-xs font-extrabold">Admin Jaya</p>
+          <p id="currentUserRole" class="text-[10px] text-slate-500">Owner / Admin</p>
+        </div>
+      </div>
+
+      <button onclick="logout()" class="w-9 h-9 grid place-items-center rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition" title="Logout"><i class="fa fa-power-off text-sm"></i></button>
+    </div>
+    
+    <nav class="max-w-7xl mx-auto px-3 md:px-5 hidden md:flex gap-1 pb-2 overflow-x-auto no-scrollbar" id="desktopNav">
+      <button data-view="dashboard" onclick="showView('dashboard')" class="navbtn active-nav px-4 py-2 rounded-full text-xs font-bold bg-slate-100 whitespace-nowrap">🏠 Dashboard</button>
+      <button data-view="products" onclick="showView('products')" class="navbtn px-4 py-2 rounded-full text-xs font-bold bg-slate-100 whitespace-nowrap">📦 Produk & Stok</button>
+      <button data-view="pos" onclick="showView('pos')" class="navbtn px-4 py-2 rounded-full text-xs font-bold bg-slate-100 whitespace-nowrap">🛒 Kasir / POS</button>
+      <button data-view="history" onclick="showView('history')" class="navbtn px-4 py-2 rounded-full text-xs font-bold bg-slate-100 whitespace-nowrap">🧾 Riwayat & Struk</button>
+      <button data-view="users" onclick="showView('users')" class="navbtn px-4 py-2 rounded-full text-xs font-bold bg-slate-100 whitespace-nowrap">👥 Pengguna</button>
+      <button data-view="sheets" onclick="showView('sheets')" class="navbtn px-4 py-2 rounded-full text-xs font-bold bg-slate-100 whitespace-nowrap">📊 Google Sheets & Panduan</button>
+    </nav>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-3 md:px-5 pt-4">
+    <!-- DASHBOARD -->
+    <section id="view-dashboard" class="view">
+      <div class="bg-[#0A4D7A] rounded-[24px] p-5 md:p-6 text-white relative overflow-hidden flex flex-col md:flex-row justify-between gap-4">
+        <div>
+          <p class="text-cyan-200 text-xs font-bold tracking-widest">❄ TOKO FROZEN FOOD TERPERCAYA</p>
+          <h2 class="text-2xl md:text-3xl font-black leading-tight mt-1">Halo, <span id="helloName">Admin!</span><br>Jualan hari ini lancar?</h2>
+          <p class="text-sm text-cyan-100/90 mt-1">Stok dingin, harga bersahabat, pelanggan senang.</p>
+          <div class="flex flex-wrap gap-2 mt-4">
+            <button onclick="showView('pos')" class="bg-white text-[#0A4D7A] px-4 py-2.5 rounded-full text-xs font-black shadow">+ Transaksi Baru</button>
+            <button onclick="openProductModal()" class="bg-cyan-500/90 hover:bg-cyan-400 px-4 py-2.5 rounded-full text-xs font-black transition">Tambah Produk</button>
+            <button onclick="openSheetsGuideModal()" class="bg-emerald-600/90 hover:bg-emerald-500 px-4 py-2.5 rounded-full text-xs font-black transition flex items-center gap-1.5">
+              <i class="fa-solid fa-book"></i> Panduan Google Sheets
+            </button>
+          </div>
+        </div>
+        <div class="bg-white/10 backdrop-blur rounded-2xl p-4 min-w-[240px]">
+          <p class="text-xs font-bold text-cyan-200">PENDAPATAN HARI INI</p>
+          <p id="statRevenue" class="text-2xl font-black mt-1">Rp 0</p>
+          <p class="text-xs text-emerald-300 font-bold mt-1">▲ 18.2% dari kemarin</p>
+          <div class="flex items-end gap-1.5 h-14 mt-3" id="miniChart"></div>
+          <div class="flex justify-between text-[9px] text-cyan-200 mt-1"><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Min</span></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+        <div class="bg-white rounded-2xl p-4 card-shadow"><p class="text-[11px] font-bold text-slate-400">TOTAL PRODUK</p><p id="statProducts" class="text-2xl font-black text-[#0A4D7A]">12</p><p class="text-[11px] text-slate-500">6 kategori aktif</p></div>
+        <div class="bg-white rounded-2xl p-4 card-shadow border-l-4 border-red-500"><p class="text-[11px] font-bold text-slate-400">STOK HABIS / MENIPIS</p><p id="statLow" class="text-2xl font-black text-red-600">3 item</p><p class="text-[11px] text-red-500 font-bold">Perlu restock segera!</p></div>
+        <div class="bg-white rounded-2xl p-4 card-shadow"><p class="text-[11px] font-bold text-slate-400">TRANSAKSI HARI INI</p><p id="statTrx" class="text-2xl font-black text-[#0A4D7A]">0</p><p class="text-[11px] text-slate-500">dari POS & online</p></div>
+        <div class="bg-white rounded-2xl p-4 card-shadow"><p class="text-[11px] font-bold text-slate-400">TOTAL STOK (PCS)</p><p id="statStock" class="text-2xl font-black text-emerald-600">0</p><p class="text-[11px] text-emerald-600 font-bold">Freezer aman ❄</p></div>
+      </div>
+
+      <div class="flex items-center justify-between mt-6 mb-3">
+        <h3 class="font-black text-[#0A3558]">🔥 Produk Terlaris & Stok</h3>
+        <button onclick="showView('products')" class="text-xs font-bold text-[#0A6FA8] hover:underline">Lihat Semua →</button>
+      </div>
+      <div id="dashboardProducts" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+    </section>
+
+    <!-- PRODUCTS -->
+    <section id="view-products" class="view hidden">
+      <div class="flex flex-wrap gap-2 items-center justify-between">
+        <div>
+          <h2 class="text-xl font-black text-[#0A3558]">Produk & Manajemen Stok</h2>
+          <p class="text-xs text-slate-500">Kelola inventaris frozen food. Tiap perubahan otomatis tersinkronisasi ke Google Sheets.</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="exportCSV()" class="bg-white border px-3 py-2.5 rounded-full text-xs font-bold hover:bg-slate-50 transition">⬇ Export CSV</button>
+          <button onclick="openProductModal()" class="bg-[#0A4D7A] hover:bg-[#083a5e] text-white px-4 py-2.5 rounded-full text-xs font-black shadow transition">+ Tambah Produk</button>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-2xl p-3 mt-3 flex flex-wrap gap-2 items-center card-shadow">
+        <input id="prodSearch" oninput="renderProducts()" placeholder="🔍 Cari nama atau barcode produk..." class="flex-1 min-w-[160px] bg-slate-100 rounded-full px-4 py-2.5 text-sm outline-none">
+        <select id="catFilter" onchange="renderProducts()" class="bg-slate-100 rounded-full px-3 py-2.5 text-xs font-bold">
+          <option value="">Semua Kategori</option>
+          <option>Ayam</option>
+          <option>Sapi</option>
+          <option>Seafood</option>
+          <option>Kentang & Snack</option>
+          <option>Dimsum</option>
+          <option>Lainnya</option>
+        </select>
+        <select id="stockFilter" onchange="renderProducts()" class="bg-slate-100 rounded-full px-3 py-2.5 text-xs font-bold">
+          <option value="">Semua Stok</option>
+          <option value="aman">🟢 Aman (>10)</option>
+          <option value="menipis">🟡 Menipis (1-10)</option>
+          <option value="habis">🔴 Habis (0)</option>
+        </select>
+        <div class="flex bg-slate-100 rounded-full p-1">
+          <button id="btnGrid" onclick="setProdLayout('grid')" class="px-3 py-1.5 rounded-full text-xs font-bold bg-white shadow">Grid</button>
+          <button id="btnList" onclick="setProdLayout('list')" class="px-3 py-1.5 rounded-full text-xs font-bold">List</button>
+        </div>
+      </div>
+      <div id="productGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4"></div>
+      <div id="productList" class="hidden bg-white rounded-2xl overflow-hidden card-shadow mt-4">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 text-left text-xs font-bold text-slate-500">
+            <tr>
+              <th class="p-3">Produk</th>
+              <th class="p-3">Kategori</th>
+              <th class="p-3">Harga</th>
+              <th class="p-3">Stok</th>
+              <th class="p-3">Status</th>
+              <th class="p-3 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="productTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- POS -->
+    <section id="view-pos" class="view hidden">
+      <div class="grid lg:grid-cols-[1fr_360px] gap-4 items-start">
+        <div>
+          <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1" id="posCats">
+            <button onclick="setPosCat('',this)" class="poscat chip-active px-4 py-2 rounded-full bg-white text-xs font-bold whitespace-nowrap shadow-sm">Semua</button>
+            <button onclick="setPosCat('Ayam',this)" class="poscat px-4 py-2 rounded-full bg-white text-xs font-bold whitespace-nowrap shadow-sm">🍗 Ayam</button>
+            <button onclick="setPosCat('Sapi',this)" class="poscat px-4 py-2 rounded-full bg-white text-xs font-bold whitespace-nowrap shadow-sm">🥩 Sapi</button>
+            <button onclick="setPosCat('Seafood',this)" class="poscat px-4 py-2 rounded-full bg-white text-xs font-bold whitespace-nowrap shadow-sm">🦐 Seafood</button>
+            <button onclick="setPosCat('Kentang & Snack',this)" class="poscat px-4 py-2 rounded-full bg-white text-xs font-bold whitespace-nowrap shadow-sm">🍟 Snack</button>
+            <button onclick="setPosCat('Dimsum',this)" class="poscat px-4 py-2 rounded-full bg-white text-xs font-bold whitespace-nowrap shadow-sm">🥟 Dimsum</button>
+          </div>
+          <div class="flex gap-2 mt-3">
+            <input id="posSearch" oninput="renderPOS()" placeholder="Ketik nama atau scan barcode produk..." class="flex-1 bg-white rounded-full px-4 py-3 text-sm shadow-sm outline-none">
+            <button onclick="openBarcodeScanner()" class="bg-[#FF6B35] hover:bg-orange-600 text-white px-4 py-3 rounded-full text-xs font-black whitespace-nowrap transition flex items-center gap-1.5">
+              <i class="fa fa-camera"></i> Scan Barcode
+            </button>
+          </div>
+          <div id="posGrid" class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3"></div>
+        </div>
+
+        <!-- CART -->
+        <div class="bg-white rounded-[22px] card-shadow overflow-hidden sticky top-[118px]">
+          <div class="bg-[#0A4D7A] text-white p-4 flex justify-between items-center">
+            <div>
+              <p class="font-black flex items-center gap-2">🧾 Keranjang Kasir</p>
+              <p class="text-[11px] text-cyan-200" id="cartInfo">0 item • Kasir: Admin</p>
+            </div>
+            <button onclick="clearCart()" class="text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full font-bold transition">Hapus</button>
+          </div>
+          <div id="cartItems" class="max-h-[290px] overflow-auto p-3 space-y-2"></div>
+          
+          <div class="p-4 border-t space-y-2 text-sm">
+            <div class="flex justify-between text-slate-500"><span>Subtotal</span><b id="subTotal" class="text-slate-800">Rp 0</b></div>
+            <div class="flex justify-between items-center">
+              <span class="text-slate-500">Diskon</span>
+              <select id="discountSel" onchange="renderCart()" class="bg-slate-100 rounded-full px-2 py-1 text-xs font-bold">
+                <option value="0">0% (Tidak ada)</option>
+                <option value="5">5% Diskon</option>
+                <option value="10">10% Promo Member</option>
+                <option value="15">15% Cuci Gudang</option>
+              </select>
+            </div>
+            <div class="flex justify-between text-lg font-black text-[#0A4D7A]"><span>TOTAL BAYAR</span><span id="grandTotal">Rp 0</span></div>
+            
+            <div class="grid grid-cols-3 gap-2 pt-1">
+              <button onclick="setPay('Tunai',this)" class="paybtn bg-[#0A4D7A] text-white py-2 rounded-xl text-xs font-bold">💵 Tunai</button>
+              <button onclick="setPay('QRIS',this)" class="paybtn bg-slate-100 py-2 rounded-xl text-xs font-bold">📱 QRIS</button>
+              <button onclick="setPay('Transfer',this)" class="paybtn bg-slate-100 py-2 rounded-xl text-xs font-bold">🏦 Transfer</button>
+            </div>
+
+            <input id="custName" placeholder="Nama pelanggan (contoh: Ibu Maya)" class="w-full bg-slate-100 rounded-xl px-3 py-2.5 text-sm outline-none">
+            <div class="flex gap-2">
+              <input id="cashInput" type="number" oninput="calcChange()" placeholder="Uang diterima (Rp)" class="flex-1 bg-slate-100 rounded-xl px-3 py-2.5 text-sm outline-none font-bold">
+              <div class="bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-xs font-bold text-emerald-700 min-w-[110px]">
+                Kembali<br><span id="changeText">Rp 0</span>
+              </div>
+            </div>
+
+            <button onclick="checkout()" class="w-full bg-[#FF6B35] hover:bg-orange-600 text-white py-3.5 rounded-2xl font-black text-sm shadow-lg shadow-orange-200 transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-print"></i>
+              BAYAR & CETAK STRUK AT-58X →
+            </button>
+            <div class="flex items-center justify-between text-[10px] text-slate-400 px-1 pt-1">
+              <span>Support Printer Thermal Bluetooth AT-58X 58mm</span>
+              <button onclick="openBTPrinterModal()" class="text-sky-600 font-bold hover:underline">Setting Printer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section id="view-history" class="view hidden">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 class="text-xl font-black text-[#0A3558]">Riwayat Transaksi</h2>
+          <p class="text-xs text-slate-500">Klik transaksi untuk melihat atau mencetak ulang struk ke printer thermal Bluetooth AT-58X.</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="syncSheets(true)" class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-full text-xs font-black hover:bg-emerald-100 transition">↻ Sync ke Sheets</button>
+          <button onclick="clearTransactions()" class="bg-red-50 text-red-600 border border-red-200 px-4 py-2.5 rounded-full text-xs font-black hover:bg-red-100 transition">🗑 Hapus Riwayat</button>
+        </div>
+      </div>
+      <div id="trxList" class="space-y-3 mt-4"></div>
+    </section>
+
+    <!-- USERS -->
+    <section id="view-users" class="view hidden">
+      <div class="flex justify-between items-center flex-wrap gap-2">
+        <div>
+          <h2 class="text-xl font-black text-[#0A3558]">Manajemen Pengguna</h2>
+          <p class="text-xs text-slate-500">Kelola akun Admin, Kasir, dan Gudang dengan ikon hak akses.</p>
+        </div>
+        <button onclick="openUserModal()" class="bg-[#0A4D7A] hover:bg-[#083a5e] text-white px-4 py-2.5 rounded-full text-xs font-black shadow transition">+ Tambah Pengguna</button>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-3 mt-4" id="userGrid"></div>
+
+      <div class="bg-white rounded-2xl p-4 mt-4 card-shadow">
+        <p class="font-black text-sm text-[#0A3558]">🔐 Matriks Hak Akses Pengguna</p>
+        <div class="grid md:grid-cols-3 gap-3 mt-3 text-xs">
+          <div class="bg-slate-50 rounded-xl p-3 border border-slate-100">
+            <div class="flex items-center gap-2 text-sky-800 font-extrabold text-sm mb-1">
+              <i class="fa-solid fa-user-shield text-[#0A4D7A]"></i> Admin / Owner
+            </div>
+            <ul class="list-disc ml-4 text-slate-600 space-y-1">
+              <li>Akses penuh kelola harga & stok produk</li>
+              <li>Manajemen akun kasir & reset password</li>
+              <li>Konfigurasi sinkronisasi Google Sheets</li>
+              <li>Lihat riwayat & hapus transaksi</li>
+            </ul>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-3 border border-slate-100">
+            <div class="flex items-center gap-2 text-emerald-800 font-extrabold text-sm mb-1">
+              <i class="fa-solid fa-user-check text-emerald-600"></i> Kasir Toko
+            </div>
+            <ul class="list-disc ml-4 text-slate-600 space-y-1">
+              <li>Akses menu Kasir / POS & Scan Barcode</li>
+              <li>Cetak struk belanja Bluetooth AT-58X</li>
+              <li>Kirim struk digital ke WhatsApp pelanggan</li>
+              <li>Tidak bisa menghapus produk atau akun</li>
+            </ul>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-3 border border-slate-100">
+            <div class="flex items-center gap-2 text-amber-800 font-extrabold text-sm mb-1">
+              <i class="fa-solid fa-boxes-stacked text-amber-600"></i> Staf Gudang
+            </div>
+            <ul class="list-disc ml-4 text-slate-600 space-y-1">
+              <li>Update stok masuk (Restock freezer)</li>
+              <li>Pantau barang yang menipis atau habis</li>
+              <li>Cetak label barcode barang masuk</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SHEETS & GUIDE -->
+    <section id="view-sheets" class="view hidden">
+      <div class="grid lg:grid-cols-12 gap-4">
+        <!-- Configuration Card -->
+        <div class="lg:col-span-6 bg-white rounded-[22px] p-5 card-shadow flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-11 h-11 bg-emerald-100 rounded-2xl grid place-items-center text-2xl text-emerald-700">
+                  <i class="fa-solid fa-file-excel"></i>
+                </div>
+                <div>
+                  <h3 class="font-black text-base text-slate-800">Database Google Sheets</h3>
+                  <p class="text-xs text-emerald-600 font-bold" id="sheetsActiveStatus">
+                    ● Terhubung • Terakhir sync: <span id="lastSync">Baru saja</span>
+                  </p>
+                </div>
+              </div>
+              <button onclick="openSheetsGuideModal()" class="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1">
+                <i class="fa-solid fa-book-open"></i> Panduan
+              </button>
+            </div>
+
+            <!-- Spreadsheet URL -->
+            <label class="text-xs font-bold block mt-4 text-slate-700">Google Spreadsheet URL / ID</label>
+            <input id="sheetUrl" value="https://docs.google.com/spreadsheets/d/1ALJAYA_FROZEN_2026/edit" class="w-full bg-slate-100 rounded-xl px-3 py-2.5 text-xs mt-1 outline-none font-mono">
+
+            <!-- Apps Script Web App URL -->
+            <div class="flex items-center justify-between mt-3">
+              <label class="text-xs font-bold text-slate-700">Apps Script Web App URL (doGet/doPost) *</label>
+              <span class="text-[10px] text-sky-600 font-bold cursor-pointer hover:underline" onclick="openSheetsGuideModal()">Cara dapat URL ini?</span>
+            </div>
+            <div class="flex gap-2 mt-1">
+              <input id="scriptUrl" placeholder="https://script.google.com/macros/s/AKfyc.../exec" class="flex-1 bg-slate-100 rounded-xl px-3 py-2.5 text-xs outline-none font-mono">
+              <button onclick="saveSheetsUrlFromInput()" class="bg-[#0A4D7A] hover:bg-[#083a5e] text-white px-3.5 py-2.5 rounded-xl text-xs font-bold transition">Simpan</button>
+            </div>
+            <p class="text-[10px] text-slate-400 mt-1">URL otomatis tersimpan di browser Anda (localStorage).</p>
+
+            <label class="text-xs font-bold block mt-3 text-slate-700">Sheet Otomatis Terbuat:</label>
+            <div class="flex gap-2 mt-1">
+              <span class="bg-[#0A4D7A] text-white px-3 py-1.5 rounded-full text-xs font-bold">Produk (10 Kolom)</span>
+              <span class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-full text-xs font-bold">Transaksi (10 Kolom)</span>
+              <span class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-full text-xs font-bold">Users (5 Kolom)</span>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
+              <button onclick="syncSheets(true)" class="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-black text-xs transition flex items-center justify-center gap-1.5">
+                <i class="fa fa-rotate"></i> SYNC SEKARANG
+              </button>
+              <button onclick="pullSheets(true)" class="bg-sky-600 hover:bg-sky-700 text-white py-2.5 rounded-xl font-black text-xs transition flex items-center justify-center gap-1.5">
+                <i class="fa fa-cloud-arrow-down"></i> TARIK DARI SHEETS
+              </button>
+              <button onclick="copyScript()" class="col-span-2 sm:col-span-1 bg-slate-100 hover:bg-slate-200 text-slate-800 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5">
+                <i class="fa fa-copy"></i> Salin Apps Script
+              </button>
+            </div>
+          </div>
+
+          <!-- Sync Log Console -->
+          <div class="mt-4">
+            <p class="text-[10px] text-slate-400 font-bold mb-1">STATUS & LOG KONEKSI SHEETS</p>
+            <div id="syncLog" class="bg-slate-900 text-emerald-400 mono text-[11px] rounded-xl p-3 h-28 overflow-auto leading-relaxed border border-slate-800">
+              > Sistem Google Sheets POS ²AL JAYA siap...<br>
+              > Masukkan URL Web App Apps Script di atas lalu klik "Simpan".
+            </div>
+          </div>
+        </div>
+
+        <!-- Sheet Preview & Interactive Guide Card -->
+        <div class="lg:col-span-6 bg-white rounded-[22px] p-5 card-shadow overflow-hidden flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="font-black text-slate-800">Pratinjau Data: Sheet "Produk"</h3>
+                <p class="text-xs text-slate-500">Data ini yang otomatis sinkron dengan Google Sheets Anda</p>
+              </div>
+              <button onclick="openSheetsGuideModal()" class="text-xs font-bold text-sky-700 hover:underline">
+                Panduan Lengkap (Langkah 1 - 5) →
+              </button>
+            </div>
+
+            <div class="overflow-auto mt-3 border rounded-xl max-h-[220px]">
+              <table class="w-full text-[11px]">
+                <thead class="bg-[#0A4D7A] text-white sticky top-0">
+                  <tr>
+                    <th class="p-2 text-left">ID</th>
+                    <th class="p-2 text-left">Nama</th>
+                    <th class="p-2">Harga</th>
+                    <th class="p-2">Stok</th>
+                    <th class="p-2">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="sheetPreview"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Step By Step Summary -->
+          <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4 mt-4">
+            <p class="font-extrabold text-xs text-[#0A4D7A] flex items-center gap-1.5 mb-2">
+              <i class="fa-solid fa-circle-info text-sky-500"></i> 4 Langkah Mudah Pasang Google Sheets:
+            </p>
+            <ol class="text-xs text-slate-700 space-y-1.5 list-decimal ml-4">
+              <li>Buka Spreadsheet baru di <a href="https://sheets.new" target="_blank" class="text-sky-600 underline font-semibold">sheets.new</a>.</li>
+              <li>Klik menu <b>Ekstensi &gt; Apps Script</b>, lalu hapus kode lama dan klik tombol <b>Salin Apps Script</b> di sebelah kiri.</li>
+              <li>Klik tombol biru <b>Terapkan &gt; Deployment baru</b>, pilih jenis <b>Aplikasi Web</b>, ubah Akses ke: <b>Siapa saja (Anyone)</b>.</li>
+              <li>Salin URL Web App berakhiran <code class="bg-sky-100 px-1 py-0.5 rounded text-[11px] font-mono">/exec</code> ke kolom di kiri, lalu klik <b>Simpan &amp; Sync</b>.</li>
+            </ol>
+            <button onclick="openSheetsGuideModal()" class="w-full mt-3 bg-white hover:bg-slate-50 text-[#0A4D7A] border border-[#0A4D7A]/30 py-2 rounded-xl text-xs font-black shadow-sm transition">
+              Buka Dokumentasi &amp; Kode Script Lengkap 📋
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- BOTTOM NAV MOBILE -->
+  <nav class="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t shadow-[0_-6px_20px_rgba(0,0,0,.08)] grid grid-cols-5 py-2 text-[10px] font-bold text-slate-500">
+    <button onclick="showView('dashboard')" class="mnav flex flex-col items-center gap-0.5 text-[#0A4D7A]"><i class="fa fa-home text-lg"></i>Home</button>
+    <button onclick="showView('products')" class="mnav flex flex-col items-center gap-0.5"><i class="fa fa-box text-lg"></i>Produk</button>
+    <button onclick="showView('pos')" class="mnav flex flex-col items-center gap-0.5"><span class="w-11 h-11 -mt-6 bg-[#FF6B35] text-white rounded-full grid place-items-center shadow-lg"><i class="fa fa-cart-shopping"></i></span>Kasir</button>
+    <button onclick="showView('history')" class="mnav flex flex-col items-center gap-0.5"><i class="fa fa-receipt text-lg"></i>Riwayat</button>
+    <button onclick="showView('sheets')" class="mnav flex flex-col items-center gap-0.5"><i class="fa fa-table text-lg"></i>Sheets</button>
+  </nav>
+</div>
+
+<!-- AT-58X BLUETOOTH PRINTER MODAL & TESTER -->
+<div id="btPrinterModal" class="fixed inset-0 z-[120] hidden bg-black/80 backdrop-blur-sm p-3 overflow-auto">
+  <div class="bg-white max-w-lg mx-auto rounded-[24px] overflow-hidden mt-6 shadow-2xl">
+    <div class="bg-[#0A4D7A] text-white p-4 flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-print text-xl text-cyan-300"></i>
+        <div>
+          <b class="text-sm">Pengaturan Printer Thermal AT-58X (58mm)</b>
+          <p class="text-[11px] text-cyan-200">Koneksi Bluetooth ESC/POS &amp; Uji Cetak Struk</p>
+        </div>
+      </div>
+      <button onclick="closeModal('btPrinterModal')" class="text-xl font-bold w-8 h-8 rounded-full hover:bg-white/10 grid place-items-center">✕</button>
+    </div>
+
+    <div class="p-5 space-y-4">
+      <!-- Status Card -->
+      <div class="bg-slate-50 border rounded-2xl p-4 flex items-center justify-between">
+        <div>
+          <p class="text-xs text-slate-500 font-bold">STATUS PERANGKAT</p>
+          <p id="btDeviceStatus" class="text-sm font-black text-slate-800 mt-0.5">Belum terhubung</p>
+          <p id="btDeviceName" class="text-xs text-slate-400 mt-0.5">Printer AT-58X / Generic Bluetooth 58mm</p>
+        </div>
+        <div id="btStatusBadge" class="w-10 h-10 rounded-full bg-slate-200 grid place-items-center text-slate-500 text-lg">
+          <i class="fa-solid fa-bluetooth"></i>
+        </div>
+      </div>
+
+      <!-- Pairing Guide for AT-58X -->
+      <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 text-xs text-amber-900 space-y-1.5">
+        <p class="font-extrabold flex items-center gap-1.5 text-amber-800">
+          <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> Panduan Pairing Printer AT-58X:
+        </p>
+        <p>1. Nyalakan printer AT-58X hingga lampu indikator LED biru/hijau menyala stabil.</p>
+        <p>2. Pastikan Bluetooth di HP / Komputer aktif, lalu pair perangkat <b>AT-58X</b> atau <b>POS-58</b>.</p>
+        <p>3. Jika diminta PIN pairing, masukkan: <code class="bg-amber-200 px-1.5 py-0.5 rounded font-black font-mono">1234</code> atau <code class="bg-amber-200 px-1.5 py-0.5 rounded font-black font-mono">0000</code>.</p>
+        <p>4. Klik tombol <b>"Hubungkan Bluetooth AT-58X"</b> di bawah.</p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="connectAT58XPrinter()" class="bg-[#0A4D7A] hover:bg-[#083a5e] text-white py-3 rounded-xl font-black text-xs shadow-md transition flex items-center justify-center gap-1.5">
+          <i class="fa-brands fa-bluetooth-b"></i> Hubungkan AT-58X
+        </button>
+        <button onclick="testPrintAT58X()" class="bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-black text-xs shadow-md transition flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-receipt"></i> Test Print Cetak
+        </button>
+      </div>
+
+      <!-- Alternative: RawBT App Integration for Android -->
+      <div class="border-t pt-3">
+        <p class="text-[11px] font-bold text-slate-700 mb-1">Opsi Alternatif (Jika browser membatasi Web Bluetooth):</p>
+        <div class="flex gap-2">
+          <button onclick="printViaRawBT(lastReceipt)" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-800 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-mobile-screen"></i> Buka di RawBT App
+          </button>
+          <button onclick="printReceipt()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-800 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-desktop"></i> Print Dialog Browser
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GOOGLE SHEETS STEP-BY-STEP MODAL -->
+<div id="sheetsGuideModal" class="fixed inset-0 z-[130] hidden bg-black/80 backdrop-blur-sm p-3 overflow-auto">
+  <div class="bg-white max-w-2xl mx-auto rounded-[24px] overflow-hidden my-6 shadow-2xl">
+    <div class="bg-emerald-700 text-white p-5 flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-white/20 grid place-items-center text-xl">
+          <i class="fa-solid fa-file-excel"></i>
+        </div>
+        <div>
+          <b class="text-base">Panduan Lengkap Sinkronisasi Google Sheets</b>
+          <p class="text-xs text-emerald-100">Hubungkan toko ²AL JAYA dengan Google Sheets secara langsung</p>
+        </div>
+      </div>
+      <button onclick="closeModal('sheetsGuideModal')" class="text-xl font-bold w-8 h-8 rounded-full hover:bg-white/20 grid place-items-center">✕</button>
+    </div>
+
+    <div class="p-6 space-y-5 text-sm text-slate-700">
+      <!-- Steps -->
+      <div class="space-y-4">
+        <!-- Step 1 -->
+        <div class="flex gap-3 items-start">
+          <span class="w-7 h-7 rounded-full bg-emerald-600 text-white font-black text-xs grid place-items-center shrink-0">1</span>
+          <div>
+            <b class="text-slate-900">Buat Dokumen Spreadsheet Baru</b>
+            <p class="text-xs text-slate-500 mt-0.5">Buka link Google Spreadsheet berikut di tab baru:</p>
+            <a href="https://sheets.new" target="_blank" class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-300 font-bold px-3 py-1.5 rounded-lg text-xs mt-1.5 hover:bg-emerald-100 transition">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Klik di sini: sheets.new
+            </a>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="flex gap-3 items-start">
+          <span class="w-7 h-7 rounded-full bg-emerald-600 text-white font-black text-xs grid place-items-center shrink-0">2</span>
+          <div class="flex-1">
+            <b class="text-slate-900">Buka Menu Ekstensi &gt; Apps Script</b>
+            <p class="text-xs text-slate-500 mt-0.5">Pada Google Sheet Anda, klik menu atas <b>Ekstensi (Extensions)</b> lalu pilih <b>Apps Script</b>.</p>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="flex gap-3 items-start">
+          <span class="w-7 h-7 rounded-full bg-emerald-600 text-white font-black text-xs grid place-items-center shrink-0">3</span>
+          <div class="flex-1">
+            <b class="text-slate-900">Hapus Kode Bawaan &amp; Tempel Kode Script Berikut</b>
+            <p class="text-xs text-slate-500 mt-0.5">Hapus teks <code class="bg-slate-100 px-1 py-0.5 rounded font-mono">myFunction()</code> lalu klik tombol salin di bawah:</p>
+            
+            <div class="mt-2 relative">
+              <button onclick="copyScript()" class="absolute top-2 right-2 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow flex items-center gap-1 transition">
+                <i class="fa-solid fa-copy"></i> Salin Kode Script
+              </button>
+              <pre class="bg-slate-900 text-emerald-400 p-3 rounded-xl text-[11px] font-mono h-36 overflow-auto border border-slate-800 pt-9" id="codeScriptDisplay">
+// GOOGLE APPS SCRIPT BACKEND ²AL JAYA FROZEN FOOD POS
+function getOrCreateSheet(ss, name, headers) { ... }
+function doGet(e) { ... }
+function doPost(e) { ... }
+              </pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="flex gap-3 items-start">
+          <span class="w-7 h-7 rounded-full bg-emerald-600 text-white font-black text-xs grid place-items-center shrink-0">4</span>
+          <div>
+            <b class="text-slate-900">Deploy sebagai Aplikasi Web (Web App)</b>
+            <p class="text-xs text-slate-500 mt-0.5">Di Apps Script, klik tombol biru <b>Terapkan (Deploy) &gt; Deployment baru (New deployment)</b>:</p>
+            <ul class="list-disc ml-5 mt-1 text-xs text-slate-600 space-y-0.5">
+              <li>Pilih jenis roda gigi: <b>Aplikasi Web (Web App)</b></li>
+              <li>Deskripsi: <code class="bg-slate-100 px-1 font-mono">Backend POS AL JAYA</code></li>
+              <li>Jalankan sebagai: <b>Saya (Me)</b></li>
+              <li>Siapa yang memiliki akses: <b>Siapa saja (Anyone)</b> <span class="text-emerald-700 font-bold">(Wajib agar bisa diakses aplikasi)</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="flex gap-3 items-start">
+          <span class="w-7 h-7 rounded-full bg-emerald-600 text-white font-black text-xs grid place-items-center shrink-0">5</span>
+          <div class="flex-1">
+            <b class="text-slate-900">Salin URL Web App &amp; Tempel di Aplikasi</b>
+            <p class="text-xs text-slate-500 mt-0.5">Salin URL yang berakhiran <code class="bg-slate-100 px-1 py-0.5 rounded font-mono">/exec</code> lalu tempel di kolom input Google Sheets di aplikasi ini.</p>
+            <div class="flex gap-2 mt-2">
+              <input id="guideScriptInput" placeholder="https://script.google.com/macros/s/AKfyc.../exec" class="flex-1 bg-slate-100 border rounded-xl px-3 py-2 text-xs font-mono outline-none">
+              <button onclick="saveFromGuideModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition">Simpan &amp; Sync</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="border-t pt-4 flex justify-end">
+        <button onclick="closeModal('sheetsGuideModal')" class="bg-[#0A4D7A] text-white px-6 py-2.5 rounded-xl font-bold text-xs">
+          Tutup Panduan &amp; Mulai Menggunakan
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BARCODE SCANNER MODAL -->
+<div id="barcodeModal" class="fixed inset-0 z-[110] hidden bg-black/80 backdrop-blur-sm p-3 overflow-auto">
+  <div class="bg-white max-w-md mx-auto rounded-[24px] overflow-hidden mt-6">
+    <div class="bg-[#0A4D7A] text-white p-4 flex justify-between items-center">
+      <div><b>Scan Barcode Produk</b><p class="text-[10px] text-cyan-200">Arahkan barcode ke kamera</p></div>
+      <button onclick="closeBarcodeScanner()" class="text-xl font-bold">✕</button>
+    </div>
+    <div class="p-4">
+      <div class="relative bg-black rounded-2xl overflow-hidden aspect-video">
+        <video id="barcodeVideo" class="w-full h-full object-cover" muted playsinline></video>
+        <div class="absolute left-[10%] right-[10%] top-1/2 border-t-2 border-red-400"></div>
+      </div>
+      <p id="barcodeStatus" class="text-xs text-slate-500 text-center mt-3">Meminta akses kamera...</p>
+      <div class="flex gap-2 mt-3">
+        <button onclick="switchBarcodeCamera()" class="flex-1 bg-slate-100 py-3 rounded-xl text-xs font-bold hover:bg-slate-200 transition">↻ Ganti Kamera</button>
+        <button onclick="closeBarcodeScanner()" class="flex-1 bg-red-50 text-red-600 py-3 rounded-xl text-xs font-bold hover:bg-red-100 transition">Tutup</button>
+      </div>
+      <p class="text-[10px] text-slate-400 text-center mt-3">Gunakan browser Chrome / Android dan izinkan akses kamera.</p>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCT MODAL -->
+<div id="productModal" class="fixed inset-0 z-[90] hidden bg-black/60 backdrop-blur-sm p-3 overflow-auto">
+  <div class="bg-white max-w-lg mx-auto rounded-[24px] overflow-hidden mt-4 shadow-2xl">
+    <div class="bg-[#0A4D7A] text-white p-4 flex justify-between items-center">
+      <b id="pmTitle">Tambah Produk</b>
+      <button onclick="closeModal('productModal')" class="text-xl font-bold">✕</button>
+    </div>
+    <form id="productForm" class="p-5 space-y-3">
+      <input type="hidden" id="pId">
+      <div class="flex gap-3">
+        <div id="imgPreview" class="w-24 h-24 bg-slate-100 rounded-2xl grid place-items-center text-3xl overflow-hidden shrink-0 border">🧊</div>
+        <div class="flex-1">
+          <label class="text-xs font-bold text-slate-700">Gambar Produk</label>
+          <input id="pImageFile" type="file" accept="image/*" class="w-full text-xs mt-1">
+          <input id="pImageUrl" placeholder="atau tempel URL gambar https://..." class="w-full bg-slate-100 rounded-xl px-3 py-2 text-xs mt-2 outline-none">
+          <p class="text-[10px] text-slate-400 mt-1">JPG/PNG, tersimpan lokal &amp; URL tersinkronisasi ke Sheets</p>
+        </div>
+      </div>
+      <input id="pName" required placeholder="Nama produk * ex: Nugget Ayam 500g" class="w-full bg-slate-100 rounded-xl px-3 py-3 text-sm outline-none font-semibold">
+      <input id="pBarcode" placeholder="Barcode produk (contoh: 8991234567890)" class="w-full bg-slate-100 rounded-xl px-3 py-3 text-sm outline-none font-mono">
+      <div class="grid grid-cols-2 gap-3">
+        <select id="pCat" class="bg-slate-100 rounded-xl px-3 py-3 text-sm outline-none">
+          <option>Ayam</option>
+          <option>Sapi</option>
+          <option>Seafood</option>
+          <option>Kentang &amp; Snack</option>
+          <option>Dimsum</option>
+          <option>Lainnya</option>
+        </select>
+        <input id="pPrice" type="number" required placeholder="Harga Rp *" class="bg-slate-100 rounded-xl px-3 py-3 text-sm outline-none font-bold">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <input id="pStock" type="number" required placeholder="Stok *" class="bg-slate-100 rounded-xl px-3 py-3 text-sm outline-none font-bold">
+        <input id="pUnit" placeholder="Satuan: pack / kg" value="pack" class="bg-slate-100 rounded-xl px-3 py-3 text-sm outline-none">
+      </div>
+      <textarea id="pDesc" placeholder="Deskripsi singkat produk" class="w-full bg-slate-100 rounded-xl px-3 py-3 text-sm outline-none" rows="2"></textarea>
+      <button class="w-full bg-[#0A4D7A] hover:bg-[#083a5e] text-white py-3.5 rounded-2xl font-black text-sm transition shadow-lg">
+        💾 SIMPAN PRODUK &amp; SYNC KE SHEETS
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- USER MODAL (With Role Icons, No Photos) -->
+<div id="userModal" class="fixed inset-0 z-[90] hidden bg-black/60 p-3">
+  <div class="bg-white max-w-md mx-auto rounded-[24px] overflow-hidden mt-10 shadow-2xl">
+    <div class="bg-[#0A4D7A] text-white p-4 flex justify-between items-center">
+      <b id="umTitle">Tambah Pengguna</b>
+      <button onclick="closeModal('userModal')" class="text-xl font-bold">✕</button>
+    </div>
+    <form id="userForm" class="p-5 space-y-3">
+      <input type="hidden" id="uId">
+      
+      <!-- Role Icon Preview -->
+      <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border">
+        <div id="modalUserIconPreview" class="w-12 h-12 rounded-full bg-[#0A4D7A] text-cyan-300 border-2 border-cyan-400 grid place-items-center text-xl shadow-sm shrink-0">
+          <i class="fa-solid fa-user-shield"></i>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-slate-800" id="modalRolePreviewText">Ikon Akun: Admin / Owner</p>
+          <p class="text-[10px] text-slate-400">Ikon otomatis menyesuaikan jenis hak akses (role)</p>
+        </div>
+      </div>
+
+      <input id="uName" required placeholder="Nama lengkap kasir / admin *" class="w-full bg-slate-100 rounded-xl px-3 py-3 text-sm outline-none font-semibold">
+      <div class="grid grid-cols-2 gap-3">
+        <input id="uUsername" required placeholder="Username *" class="bg-slate-100 rounded-xl px-3 py-3 text-sm outline-none font-mono">
+        <input id="uPass" required placeholder="Password *" class="bg-slate-100 rounded-xl px-3 py-3 text-sm outline-none font-mono">
+      </div>
+      <select id="uRole" onchange="updateModalRoleIcon(this.value)" class="w-full bg-slate-100 rounded-xl px-3 py-3 text-sm outline-none font-bold text-slate-700">
+        <option value="Admin">🛡️ Admin (Akses Penuh Toko &amp; Sheets)</option>
+        <option value="Kasir">🧾 Kasir (POS &amp; Cetak Struk AT-58X)</option>
+        <option value="Gudang">📦 Gudang (Manajemen Stok)</option>
+      </select>
+      <button class="w-full bg-[#0A4D7A] hover:bg-[#083a5e] text-white py-3.5 rounded-2xl font-black text-sm transition shadow-lg">
+        SIMPAN PENGGUNA
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- RECEIPT MODAL -->
+<div id="receiptModal" class="fixed inset-0 z-[95] hidden bg-black/70 backdrop-blur p-3 overflow-auto">
+  <div class="max-w-[360px] mx-auto mt-2">
+    <div class="flex gap-2 mb-2">
+      <select id="paperSize" onchange="changePaper(this.value)" class="flex-1 bg-white rounded-full px-3 py-2 text-xs font-bold">
+        <option value="58">Thermal 58mm (Printer AT-58X)</option>
+        <option value="80">Thermal 80mm</option>
+      </select>
+      <button onclick="closeModal('receiptModal')" class="w-9 h-9 bg-white rounded-full font-bold grid place-items-center">✕</button>
+    </div>
+
+    <!-- Thermal Receipt Paper -->
+    <div class="thermal mx-auto rounded-t-lg shadow-2xl" id="receiptPaper"></div>
+    <div class="jagged max-w-[302px] mx-auto" id="jaggedEl"></div>
+
+    <!-- Print Actions -->
+    <div class="grid grid-cols-2 gap-2 mt-3">
+      <button onclick="printAT58XBluetooth()" class="bg-[#0A4D7A] hover:bg-[#083a5e] text-white py-3 rounded-full font-black text-xs border border-white/30 flex items-center justify-center gap-1.5 transition">
+        <i class="fa-brands fa-bluetooth-b"></i> PRINT AT-58X
+      </button>
+      <button onclick="printReceipt()" class="bg-white hover:bg-slate-100 py-3 rounded-full font-black text-xs flex items-center justify-center gap-1.5 transition">
+        <i class="fa-solid fa-print"></i> PRINT BIASA
+      </button>
+    </div>
+    
+    <div class="grid grid-cols-2 gap-2 mt-2">
+      <button onclick="printViaRawBT(lastReceipt)" class="bg-sky-700 text-white py-2.5 rounded-full font-bold text-xs flex items-center justify-center gap-1.5">
+        <i class="fa-solid fa-mobile-screen"></i> RawBT App
+      </button>
+      <button onclick="shareWA()" class="bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-full font-black text-xs flex items-center justify-center gap-1.5 transition">
+        <i class="fa-brands fa-whatsapp"></i> Kirim WhatsApp
+      </button>
+    </div>
+
+    <p class="text-center text-white/80 text-[10px] mt-2">
+      Printer AT-58X Bluetooth: PIN pairing <span class="font-mono font-bold text-cyan-300">1234</span> atau <span class="font-mono font-bold text-cyan-300">0000</span>.
+    </p>
+  </div>
+</div>
+
+<div id="printArea"></div>
+
+<script>
+// ==========================================
+// 1. CONFIGURATION & STATE
+// ==========================================
+let GOOGLE_APPS_SCRIPT_URL = localStorage.getItem('aljaya_sheets_url') || '';
+const LOGO = "https://www.designarena.ai/u/1b8ed177-6347-4a72-a4ca-28aec7d3b171";
+const fmt = n => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
+
+let products = JSON.parse(localStorage.getItem('aljaya_products') || 'null') || [
+  {id:1, name:"Nugget Ayam Premium 500g", cat:"Ayam", price:28500, stock:48, unit:"pack", barcode:"8991001001", img:"https://images.unsplash.com/photo-1562967914-608f82629710?w=600&auto=format&fit=crop", desc:"Crispy, juicy, favorit anak"},
+  {id:2, name:"Sosis Sapi Bratwurst 450g", cat:"Sapi", price:32000, stock:5, unit:"pack", barcode:"8991001002", img:"https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=600&auto=format&fit=crop", desc:"Sosis sapi asli gurih"},
+  {id:3, name:"Bakso Sapi Premium 500g", cat:"Sapi", price:35000, stock:32, unit:"pack", barcode:"8991001003", img:"https://images.unsplash.com/photo-1541544741938-0af808871cc0?w=600&auto=format&fit=crop", desc:"Kenyal, daging terasa"},
+  {id:4, name:"Kentang Shoestring 1kg", cat:"Kentang & Snack", price:27000, stock:0, unit:"pack", barcode:"8991001004", img:"https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&auto=format&fit=crop", desc:"Renyah untuk camilan"},
+  {id:5, name:"Dimsum Ayam Udang 20pcs", cat:"Dimsum", price:22000, stock:24, unit:"pack", barcode:"8991001005", img:"https://images.unsplash.com/photo-1496116218417-1a781b1c416c?w=600&auto=format&fit=crop", desc:"Dimsum lembut isi melimpah"},
+  {id:6, name:"Chicken Katsu Frozen", cat:"Ayam", price:38000, stock:18, unit:"pack", barcode:"8991001006", img:"https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=600&auto=format&fit=crop", desc:"Siap goreng, crispy"},
+  {id:7, name:"Udang Kupas Vaname 250g", cat:"Seafood", price:45000, stock:9, unit:"pack", barcode:"8991001007", img:"https://images.unsplash.com/photo-1565680018434-b513d5e5fd47?w=600&auto=format&fit=crop", desc:"Segar beku, bersih"},
+  {id:8, name:"Risol Mayo Smoked Beef", cat:"Kentang & Snack", price:18000, stock:41, unit:"pack", barcode:"8991001008", img:"https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&auto=format&fit=crop", desc:"Lumer mayo-nya"},
+  {id:9, name:"Daging Slice Shortplate 500g", cat:"Sapi", price:52000, stock:27, unit:"pack", barcode:"8991001009", img:"https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=600&auto=format&fit=crop", desc:"Untuk grill & shabu"},
+  {id:10, name:"Cireng Bumbu Rujak", cat:"Kentang & Snack", price:12000, stock:60, unit:"pack", barcode:"8991001010", img:"https://images.unsplash.com/photo-1626074353765-517a681e40be?w=600&auto=format&fit=crop", desc:"Pedas manis nagih"},
+  {id:11, name:"Otak-Otak Ikan 500g", cat:"Seafood", price:19500, stock:14, unit:"pack", barcode:"8991001011", img:"https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&auto=format&fit=crop", desc:"Ikan tenggiri asli"},
+  {id:12, name:"Ekkado Ayam Telur Puyuh", cat:"Dimsum", price:24000, stock:22, unit:"pack", barcode:"8991001012", img:"https://images.unsplash.com/photo-1541696432-82a6da8ce7bf?w=600&auto=format&fit=crop", desc:"Favorit bento anak"},
+];
+
+let users = JSON.parse(localStorage.getItem('aljaya_users') || 'null') || [
+  {id:1, name:"Admin Jaya", username:"admin", pass:"admin123", role:"Admin"},
+  {id:2, name:"Siti Kasir", username:"kasir", pass:"kasir123", role:"Kasir"},
+  {id:3, name:"Budi Gudang", username:"budi", pass:"budi123", role:"Gudang"},
+];
+
+let transactions = JSON.parse(localStorage.getItem('aljaya_trx') || 'null') || [
+  {id:"ALJ-260520-001", date:new Date().toISOString(), customer:"Bu Rina", pay:"Tunai", items:[{name:"Nugget Ayam Premium 500g", qty:2, price:28500},{name:"Dimsum Ayam Udang 20pcs", qty:1, price:22000}], total:79000, kasir:"Admin Jaya"},
+  {id:"ALJ-260520-002", date:new Date(Date.now()-3600000).toISOString(), customer:"Pak Dedi", pay:"QRIS", items:[{name:"Bakso Sapi Premium 500g", qty:1, price:35000}], total:35000, kasir:"Siti Kasir"},
+];
+
+let cart = [], currentUser = null, payMethod = 'Tunai', posCat = '', prodLayout = 'grid', lastReceipt = null;
+
+// ==========================================
+// 2. USER ICON BADGE HELPERS (NO EXTERNAL PHOTOS)
+// ==========================================
+function getUserIconBadge(role, size = 'md') {
+  const r = (role || 'Kasir').toLowerCase();
+  const isLg = size === 'lg';
+  let bgClass = 'bg-[#0A4D7A] text-cyan-300 border-cyan-400';
+  let iconClass = 'fa-user-shield';
+
+  if (r === 'gudang') {
+    bgClass = 'bg-amber-600 text-amber-100 border-amber-300';
+    iconClass = 'fa-boxes-stacked';
+  } else if (r === 'kasir') {
+    bgClass = 'bg-emerald-600 text-emerald-100 border-emerald-300';
+    iconClass = 'fa-user-check';
+  }
+
+  const dim = isLg ? 'w-12 h-12 text-lg border-2' : 'w-9 h-9 text-sm border-2';
+  return `<div class="${dim} ${bgClass} rounded-full grid place-items-center shadow-sm shrink-0"><i class="fa-solid ${iconClass}"></i></div>`;
+}
+
+function updateModalRoleIcon(role) {
+  const preview = document.getElementById('modalUserIconPreview');
+  const text = document.getElementById('modalRolePreviewText');
+  if (!preview) return;
+
+  const r = (role || 'Kasir').toLowerCase();
+  let bgClass = 'bg-[#0A4D7A] text-cyan-300 border-cyan-400';
+  let iconClass = 'fa-user-shield';
+  let label = 'Ikon Akun: Admin / Owner';
+
+  if (r === 'gudang') {
+    bgClass = 'bg-amber-600 text-amber-100 border-amber-300';
+    iconClass = 'fa-boxes-stacked';
+    label = 'Ikon Akun: Staf Gudang';
+  } else if (r === 'kasir') {
+    bgClass = 'bg-emerald-600 text-emerald-100 border-emerald-300';
+    iconClass = 'fa-user-check';
+    label = 'Ikon Akun: Kasir Toko';
+  }
+
+  preview.className = `w-12 h-12 rounded-full ${bgClass} border-2 grid place-items-center text-xl shadow-sm shrink-0`;
+  preview.innerHTML = `<i class="fa-solid ${iconClass}"></i>`;
+  if (text) text.textContent = label;
+}
+
+// ==========================================
+// 3. STORAGE & TOAST
+// ==========================================
+function saveAll() {
+  localStorage.setItem('aljaya_products', JSON.stringify(products));
+  localStorage.setItem('aljaya_users', JSON.stringify(users));
+  localStorage.setItem('aljaya_trx', JSON.stringify(transactions));
+}
+
+function showToast(m) {
+  const el = document.getElementById('toastMsg');
+  if (el) el.textContent = m;
+  const t = document.getElementById('toast');
+  if (t) {
+    t.classList.remove('hidden');
+    setTimeout(() => t.classList.add('hidden'), 2600);
+  }
+}
+
+function stockStatus(s) {
+  return s == 0 
+    ? {t:'HABIS', c:'bg-red-500 text-white', dot:'bg-red-500', label:'🔴 Habis'}
+    : s <= 10 
+    ? {t:'MENIPIS', c:'bg-amber-400 text-amber-900', dot:'bg-amber-400', label:'🟡 Menipis'}
+    : {t:'AMAN', c:'bg-emerald-500 text-white', dot:'bg-emerald-500', label:'🟢 Aman'};
+}
+
+// ==========================================
+// 4. AT-58X BLUETOOTH THERMAL PRINTER DRIVER
+// ==========================================
+let btDevice = null, btServer = null, btCharacteristic = null;
+
+// Standard & Vendor Thermal Printer BLE Service UUIDs (including AT-58X, ISSC, POS-58)
+const AT58X_SERVICE_UUIDS = [
+  '000018f0-0000-1000-8000-00805f9b34fb', // Standard Printer
+  '49535343-fe7d-4ae5-8fa9-9fafd205e455', // ISSC Transparent Serial (Very common in AT-58X)
+  'e7810a71-73ae-499d-8c15-faa9aef0c3f2', // Vendor POS
+  '0000e0ff-0000-1000-8000-00805f9b34fb',
+  '0000ff00-0000-1000-8000-00805f9b34fb',
+  '0000fff0-0000-1000-8000-00805f9b34fb'
+];
+
+function openBTPrinterModal() {
+  document.getElementById('btPrinterModal').classList.remove('hidden');
+  updateBTModalUI();
+}
+
+function updateBTModalUI() {
+  const statusEl = document.getElementById('btDeviceStatus');
+  const nameEl = document.getElementById('btDeviceName');
+  const badgeEl = document.getElementById('btStatusBadge');
+  const headerLabel = document.getElementById('btPrinterLabel');
+
+  if (btDevice && btDevice.gatt && btDevice.gatt.connected) {
+    if (statusEl) statusEl.textContent = '🟢 Terhubung';
+    if (nameEl) nameEl.textContent = btDevice.name || 'Printer AT-58X';
+    if (badgeEl) badgeEl.className = 'w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 grid place-items-center text-lg';
+    if (headerLabel) headerLabel.textContent = (btDevice.name || 'AT-58X') + ' (OK)';
+  } else {
+    if (statusEl) statusEl.textContent = '⚪ Belum terhubung';
+    if (nameEl) nameEl.textContent = 'Printer AT-58X / Generic Bluetooth 58mm';
+    if (badgeEl) badgeEl.className = 'w-10 h-10 rounded-full bg-slate-200 text-slate-500 grid place-items-center text-lg';
+    if (headerLabel) headerLabel.textContent = 'Printer AT-58X';
+  }
+}
+
+async function connectAT58XPrinter() {
+  if (!navigator.bluetooth) {
+    showToast('Browser ini tidak mendukung Web Bluetooth. Gunakan Chrome Android / RawBT.');
+    return;
+  }
+
+  showToast('Mencari printer Bluetooth AT-58X...');
+  try {
+    btDevice = await navigator.bluetooth.requestDevice({
+      filters: [
+        { namePrefix: 'AT-' },
+        { namePrefix: 'POS' },
+        { namePrefix: 'MPT' },
+        { namePrefix: 'RPP' },
+        { namePrefix: 'Printer' },
+        { namePrefix: 'BT' }
+      ],
+      optionalServices: AT58X_SERVICE_UUIDS
+    }).catch(async () => {
+      // Fallback: acceptAllDevices
+      return await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: AT58X_SERVICE_UUIDS
+      });
+    });
+
+    if (!btDevice) return;
+
+    btDevice.addEventListener('gattserverdisconnected', onBTDisconnected);
+    showToast('Menghubungkan ke ' + (btDevice.name || 'AT-58X') + '...');
+
+    btServer = await btDevice.gatt.connect();
+
+    // Find writable characteristic
+    btCharacteristic = null;
+    const services = await btServer.getPrimaryServices();
+    for (const service of services) {
+      const chars = await service.getCharacteristics();
+      for (const char of chars) {
+        if (char.properties.write || char.properties.writeWithoutResponse) {
+          btCharacteristic = char;
+          break;
+        }
+      }
+      if (btCharacteristic) break;
+    }
+
+    if (!btCharacteristic) {
+      throw new Error('Karakteristik write printer tidak ditemukan');
+    }
+
+    updateBTModalUI();
+    showToast('Printer ' + (btDevice.name || 'AT-58X') + ' berhasil terhubung!');
+  } catch (error) {
+    console.error('Bluetooth AT-58X Error:', error);
+    showToast('Koneksi printer dibatalkan atau gagal: ' + error.message);
+    updateBTModalUI();
+  }
+}
+
+function onBTDisconnected() {
+  btCharacteristic = null;
+  updateBTModalUI();
+  showToast('Koneksi printer Bluetooth terputus');
+}
+
+// Generate ESC/POS byte buffer for AT-58X
+function generateEscPosBuffer(trx) {
+  const encoder = new TextEncoder();
+  const bytes = [];
+  const add = (arr) => { for (let b of arr) bytes.push(b); };
+  const addText = (str) => { add(encoder.encode(str)); };
+
+  // ESC @ : Initialize printer
+  add([0x1B, 0x40]);
+
+  // Center align
+  add([0x1B, 0x61, 0x01]);
+  // Double height & bold for store title
+  add([0x1B, 0x45, 0x01]);
+  addText("2AL JAYA FROZEN FOOD\n");
+  add([0x1B, 0x45, 0x00]);
+  addText("Jl. Raya Frozen No. 88 Jakarta\n");
+  addText("WA: 0812-3456-7890 | Halal & Fresh\n");
+  addText("--------------------------------\n");
+
+  // Left align for order details
+  add([0x1B, 0x61, 0x00]);
+  const d = new Date(trx.date);
+  addText("No: " + trx.id + "\n");
+  addText("Tgl: " + d.toLocaleDateString('id-ID') + " " + d.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) + "\n");
+  addText("Kasir: " + trx.kasir + "\n");
+  addText("Plg: " + (trx.customer || 'Pelanggan Umum') + " (" + trx.pay + ")\n");
+  addText("--------------------------------\n");
+
+  // Items (Max 32 chars per line for 58mm)
+  trx.items.forEach(it => {
+    const itemTotal = Number(it.price * it.qty).toLocaleString('id-ID');
+    addText(it.name + "\n");
+    const sub = "  " + it.qty + " x " + Number(it.price).toLocaleString('id-ID');
+    const spaces = Math.max(1, 32 - sub.length - itemTotal.length);
+    addText(sub + " ".repeat(spaces) + itemTotal + "\n");
+  });
+
+  addText("--------------------------------\n");
+
+  // Subtotal & Total
+  const subtotalNum = trx.items.reduce((a, c) => a + c.price * c.qty, 0);
+  const totalStr = Number(trx.total).toLocaleString('id-ID');
+  
+  // Right align
+  add([0x1B, 0x61, 0x02]);
+  addText("Subtotal: Rp " + subtotalNum.toLocaleString('id-ID') + "\n");
+  if (trx.disc) {
+    const discNum = (subtotalNum * trx.disc / 100);
+    addText("Diskon " + trx.disc + "%: -Rp " + discNum.toLocaleString('id-ID') + "\n");
+  }
+  add([0x1B, 0x45, 0x01]);
+  addText("TOTAL: Rp " + totalStr + "\n");
+  add([0x1B, 0x45, 0x00]);
+  addText("Bayar: Rp " + Number(trx.cash || trx.total).toLocaleString('id-ID') + "\n");
+  addText("Kembali: Rp " + Number(trx.change || 0).toLocaleString('id-ID') + "\n");
+
+  // Center align footer
+  add([0x1B, 0x61, 0x01]);
+  addText("--------------------------------\n");
+  addText("*** TERIMA KASIH ***\n");
+  addText("Tetap Dingin, Tetap Segar\n");
+  addText("IG: @aljaya.frozenfood\n\n\n\n");
+
+  // Feed & paper cut
+  add([0x1B, 0x64, 0x03]);
+  add([0x1D, 0x56, 0x42, 0x00]);
+
+  return new Uint8Array(bytes);
+}
+
+// Send buffer to AT-58X in 20-byte chunks
+async function sendBufferToPrinter(buffer) {
+  if (!btCharacteristic) throw new Error('Printer belum terhubung');
+  const chunkSize = 20;
+  for (let i = 0; i < buffer.length; i += chunkSize) {
+    const chunk = buffer.slice(i, i + chunkSize);
+    if (btCharacteristic.properties.writeValueWithoutResponse) {
+      await btCharacteristic.writeValueWithoutResponse(chunk);
+    } else {
+      await btCharacteristic.writeValue(chunk);
+    }
+    // Small delay to allow AT-58X RX buffer to process
+    await new Promise(r => setTimeout(r, 20));
+  }
+}
+
+async function printAT58XBluetooth() {
+  if (!lastReceipt) return showToast('Belum ada transaksi untuk dicetak');
+
+  if (!btCharacteristic) {
+    showToast('Printer belum terkoneksi. Membuka dialog Bluetooth...');
+    await connectAT58XPrinter();
+    if (!btCharacteristic) return;
+  }
+
+  showToast('Mengirim data struk ke printer AT-58X...');
+  try {
+    const buffer = generateEscPosBuffer(lastReceipt);
+    await sendBufferToPrinter(buffer);
+    showToast('Struk berhasil dicetak di AT-58X! ✓');
+  } catch (error) {
+    console.error(error);
+    showToast('Gagal cetak Bluetooth: ' + error.message + '. Membuka print dialog standar...');
+    setTimeout(printReceipt, 500);
+  }
+}
+
+async function testPrintAT58X() {
+  if (!btCharacteristic) {
+    await connectAT58XPrinter();
+    if (!btCharacteristic) return;
+  }
+
+  showToast('Mencetak struk uji coba AT-58X...');
+  try {
+    const testTrx = {
+      id: 'TEST-' + Date.now().toString().slice(-4),
+      date: new Date().toISOString(),
+      kasir: currentUser ? currentUser.name : 'Admin',
+      customer: 'Uji Printer AT-58X',
+      pay: 'Bluetooth OK',
+      items: [
+        { name: 'Nugget Ayam Test 500g', qty: 1, price: 28500 },
+        { name: 'Koneksi AT-58X 58mm', qty: 1, price: 0 }
+      ],
+      total: 28500,
+      cash: 30000,
+      change: 1500,
+      disc: 0
+    };
+    const buffer = generateEscPosBuffer(testTrx);
+    await sendBufferToPrinter(buffer);
+    showToast('Test print AT-58X berhasil! ✓');
+  } catch (err) {
+    showToast('Test print gagal: ' + err.message);
+  }
+}
+
+// Fallback to RawBT Android intent
+function printViaRawBT(trx) {
+  if (!trx) trx = lastReceipt;
+  if (!trx) return showToast('Pilih transaksi terlebih dahulu');
+  
+  const d = new Date(trx.date);
+  let txt = `2AL JAYA FROZEN FOOD\nJl. Raya Frozen No. 88 Jakarta\nWA: 0812-3456-7890\n--------------------------------\nNo: ${trx.id}\nTgl: ${d.toLocaleString('id-ID')}\nKasir: ${trx.kasir}\nPlg: ${trx.customer} (${trx.pay})\n--------------------------------\n`;
+  trx.items.forEach(it => {
+    txt += `${it.name}\n  ${it.qty}x @${Number(it.price).toLocaleString('id-ID')} = Rp ${Number(it.price * it.qty).toLocaleString('id-ID')}\n`;
+  });
+  txt += `--------------------------------\nTOTAL: Rp ${Number(trx.total).toLocaleString('id-ID')}\nBayar: Rp ${Number(trx.cash||trx.total).toLocaleString('id-ID')}\nKembali: Rp ${Number(trx.change||0).toLocaleString('id-ID')}\n--------------------------------\n*** TERIMA KASIH ***\n\n\n`;
+  
+  const b64 = btoa(unescape(encodeURIComponent(txt)));
+  window.location.href = "rawbt:data:text/plain;base64," + b64;
+}
+
+// ==========================================
+// 5. GOOGLE SHEETS SYNC ENGINE
+// ==========================================
+const sheetsConfigured = () => {
+  return GOOGLE_APPS_SCRIPT_URL && 
+    GOOGLE_APPS_SCRIPT_URL.startsWith('https://script.google.com/macros/s/') && 
+    GOOGLE_APPS_SCRIPT_URL.endsWith('/exec');
+};
+
+function updateSyncStatusUI(status, message) {
+  const label = document.getElementById('syncLabel');
+  const dot = document.getElementById('syncStatusDot');
+  const btn = document.getElementById('syncStatusBtn');
+  const badge = document.getElementById('loginSheetsBadge');
+  const activeStatus = document.getElementById('sheetsActiveStatus');
+
+  if (status === 'connected') {
+    if (label) label.textContent = 'Sheets: Terhubung';
+    if (dot) dot.className = 'w-2 h-2 bg-emerald-500 rounded-full animate-pulse';
+    if (btn) btn.className = 'hidden md:flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-2 rounded-full text-xs font-bold';
+    if (badge) badge.className = 'bg-emerald-100 text-emerald-800 text-[11px] font-extrabold px-3 py-1.5 rounded-full flex items-center gap-1.5';
+    if (activeStatus) activeStatus.innerHTML = `● Terhubung • Terakhir sync: <span>${message || 'Baru saja'}</span>`;
+  } else if (status === 'syncing') {
+    if (label) label.textContent = 'Sheets: Syncing...';
+    if (dot) dot.className = 'w-2 h-2 bg-sky-500 rounded-full animate-ping';
+  } else if (status === 'unconfigured') {
+    if (label) label.textContent = 'Sheets: Belum Diatur';
+    if (dot) dot.className = 'w-2 h-2 bg-amber-500 rounded-full';
+    if (btn) btn.className = 'hidden md:flex items-center gap-2 bg-amber-50 text-amber-700 border border-amber-200 px-3 py-2 rounded-full text-xs font-bold';
+    if (activeStatus) activeStatus.innerHTML = `⚠️ <span class="text-amber-600">URL Belum Diatur • Masukkan URL Apps Script</span>`;
+  } else {
+    if (label) label.textContent = 'Sheets: Gagal';
+    if (dot) dot.className = 'w-2 h-2 bg-red-500 rounded-full';
+    if (btn) btn.className = 'hidden md:flex items-center gap-2 bg-red-50 text-red-700 border border-red-200 px-3 py-2 rounded-full text-xs font-bold';
+    if (activeStatus) activeStatus.innerHTML = `✕ <span class="text-red-600">Gagal Koneksi: ${message || 'Cek URL'}</span>`;
+  }
+}
+
+function saveSheetsUrl(url) {
+  const clean = String(url || '').trim();
+  GOOGLE_APPS_SCRIPT_URL = clean;
+  localStorage.setItem('aljaya_sheets_url', clean);
+  const input1 = document.getElementById('scriptUrl');
+  const input2 = document.getElementById('guideScriptInput');
+  if (input1) input1.value = clean;
+  if (input2) input2.value = clean;
+
+  if (sheetsConfigured()) {
+    updateSyncStatusUI('connected', 'Tersimpan');
+    showToast('URL Google Apps Script disimpan! Melakukan sync...');
+    syncSheets(true);
+  } else {
+    updateSyncStatusUI('unconfigured');
+    showToast('URL tidak valid. Pastikan berakhiran /exec');
+  }
+}
+
+function saveSheetsUrlFromInput() {
+  const v = document.getElementById('scriptUrl')?.value;
+  saveSheetsUrl(v);
+}
+
+function saveFromGuideModal() {
+  const v = document.getElementById('guideScriptInput')?.value;
+  saveSheetsUrl(v);
+  closeModal('sheetsGuideModal');
+}
+
+async function sheetsGet(action = 'all') {
+  if (!sheetsConfigured()) return null;
+  const url = GOOGLE_APPS_SCRIPT_URL + (GOOGLE_APPS_SCRIPT_URL.includes('?') ? '&' : '?') + 'action=' + encodeURIComponent(action) + '&_t=' + Date.now();
+  const r = await fetch(url, { cache: 'no-store' });
+  const data = await r.json();
+  if (!data.ok) throw new Error(data.error || 'GET Google Sheets gagal');
+  return data;
+}
+
+async function sheetsPost(payload) {
+  if (!sheetsConfigured()) return null;
+  const r = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  });
+  const data = await r.json();
+  if (!data.ok) throw new Error(data.error || 'POST Google Sheets gagal');
+  return data;
+}
+
+async function syncSheets(manual = false) {
+  const log = document.getElementById('syncLog');
+  if (!sheetsConfigured()) {
+    updateSyncStatusUI('unconfigured');
+    if (log) log.innerHTML += `<br>> ⚠️ URL belum diatur. Masukkan URL Apps Script berakhiran /exec`;
+    if (manual) {
+      showToast('Masukkan URL Apps Script terlebih dahulu');
+      openSheetsGuideModal();
+    }
+    return;
+  }
+
+  updateSyncStatusUI('syncing');
+  if (log) log.innerHTML += `<br>> [${new Date().toLocaleTimeString()}] Mengirim sinkronisasi ke Sheets...`;
+
+  try {
+    await sheetsPost({
+      action: 'sync',
+      products,
+      transactions,
+      users: users.map(u => ({ ...u, password: u.pass }))
+    });
+
+    const waktu = new Date().toLocaleTimeString('id-ID');
+    updateSyncStatusUI('connected', waktu);
+    const last = document.getElementById('lastSync');
+    if (last) last.textContent = waktu;
+    if (log) log.innerHTML += `<br>> ✓ SYNC BERHASIL - Produk (${products.length}), Transaksi (${transactions.length}) tersimpan`;
+    if (manual) showToast('Google Sheets berhasil disinkronisasi! ✓');
+  } catch (error) {
+    console.error('Sync Sheets Error:', error);
+    updateSyncStatusUI('error', error.message);
+    if (log) log.innerHTML += `<br>> ✕ Sync Gagal: ${error.message}`;
+    if (manual) showToast('Gagal terhubung ke Google Sheets');
+  }
+}
+
+async function pullSheets(manual = false) {
+  const log = document.getElementById('syncLog');
+  if (!sheetsConfigured()) {
+    showToast('Masukkan URL Apps Script terlebih dahulu');
+    openSheetsGuideModal();
+    return;
+  }
+
+  showToast('Mengambil data dari Google Sheets...');
+  if (log) log.innerHTML += `<br>> [${new Date().toLocaleTimeString()}] Mengambil data terbaru dari Sheets...`;
+
+  try {
+    const result = await sheetsGet('all');
+    if (result && result.products && Array.isArray(result.products) && result.products.length > 0) {
+      products = result.products;
+    }
+    if (result && result.transactions && Array.isArray(result.transactions)) {
+      transactions = result.transactions;
+    }
+    if (result && result.users && Array.isArray(result.users) && result.users.length > 0) {
+      users = result.users;
+    }
+
+    saveAll();
+    renderAll();
+    updateSyncStatusUI('connected', new Date().toLocaleTimeString('id-ID'));
+    if (log) log.innerHTML += `<br>> ✓ Data Sheets berhasil ditarik: ${products.length} produk diterima.`;
+    showToast('Data berhasil diperbarui dari Google Sheets! ✓');
+  } catch (err) {
+    console.error('Pull Sheets Error:', err);
+    if (log) log.innerHTML += `<br>> ✕ Tarik Data Gagal: ${err.message}`;
+    showToast('Gagal menarik data dari Google Sheets: ' + err.message);
+  }
+}
+
+function openSheetsGuideModal() {
+  document.getElementById('sheetsGuideModal').classList.remove('hidden');
+  const input = document.getElementById('guideScriptInput');
+  if (input && GOOGLE_APPS_SCRIPT_URL) input.value = GOOGLE_APPS_SCRIPT_URL;
+}
+
+// Complete Apps Script Code for user to copy
+const FULL_APPS_SCRIPT_CODE = `/**
+ * GOOGLE APPS SCRIPT BACKEND FOR 2AL JAYA FROZEN FOOD POS
+ * Paste kode ini di Google Sheets > Ekstensi > Apps Script
+ * Lalu klik Terapkan (Deploy) > Deployment Baru > Jenis: Aplikasi Web
+ * Jalankan sebagai: Saya (Me)
+ * Akses: Siapa saja (Anyone)
+ */
+
+function getOrCreateSheet(ss, name, headers) {
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    if (headers && headers.length) {
+      sheet.appendRow(headers);
+      var headerRange = sheet.getRange(1, 1, 1, headers.length);
+      headerRange.setBackground('#0A4D7A').setFontColor('#FFFFFF').setFontWeight('bold');
+      sheet.setFrozenRows(1);
+    }
+  }
+  return sheet;
+}
+
+function doGet(e) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : 'all';
+    
+    var prodSheet = getOrCreateSheet(ss, 'Produk', ['ID', 'Nama', 'Kategori', 'Harga', 'Stok', 'Satuan', 'Barcode', 'Deskripsi', 'Gambar', 'Update_Terakhir']);
+    var trxSheet = getOrCreateSheet(ss, 'Transaksi', ['ID_Transaksi', 'Tanggal', 'Pelanggan', 'Metode_Bayar', 'Kasir', 'Item_Ringkasan', 'Total', 'Diskon', 'Uang_Diterima', 'Kembalian']);
+    var userSheet = getOrCreateSheet(ss, 'Users', ['ID', 'Nama', 'Username', 'Password', 'Role']);
+
+    var result = { ok: true, timestamp: new Date().toISOString() };
+
+    if (action === 'all' || action === 'products') {
+      var prodData = prodSheet.getDataRange().getValues();
+      var products = [];
+      for (var i = 1; i < prodData.length; i++) {
+        var row = prodData[i];
+        if (row[0]) {
+          products.push({
+            id: Number(row[0]) || row[0],
+            name: String(row[1] || ''),
+            cat: String(row[2] || 'Lainnya'),
+            price: Number(row[3]) || 0,
+            stock: Number(row[4]) || 0,
+            unit: String(row[5] || 'pack'),
+            barcode: String(row[6] || ''),
+            desc: String(row[7] || ''),
+            img: String(row[8] || '')
+          });
+        }
+      }
+      result.products = products;
+    }
+
+    if (action === 'all' || action === 'transactions') {
+      var trxData = trxSheet.getDataRange().getValues();
+      var transactions = [];
+      for (var j = 1; j < trxData.length; j++) {
+        var r = trxData[j];
+        if (r[0]) {
+          transactions.push({
+            id: String(r[0]),
+            date: String(r[1]),
+            customer: String(r[2]),
+            pay: String(r[3]),
+            kasir: String(r[4]),
+            itemsDesc: String(r[5]),
+            total: Number(r[6]) || 0,
+            disc: Number(r[7]) || 0,
+            cash: Number(r[8]) || 0,
+            change: Number(r[9]) || 0
+          });
+        }
+      }
+      result.transactions = transactions;
+    }
+
+    if (action === 'all' || action === 'users') {
+      var uData = userSheet.getDataRange().getValues();
+      var users = [];
+      for (var k = 1; k < uData.length; k++) {
+        var ur = uData[k];
+        if (ur[0]) {
+          users.push({
+            id: Number(ur[0]) || ur[0],
+            name: String(ur[1]),
+            username: String(ur[2]),
+            pass: String(ur[3]),
+            role: String(ur[4])
+          });
+        }
+      }
+      result.users = users;
+    }
+
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doPost(e) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var payload = {};
+    if (e && e.postData && e.postData.contents) {
+      payload = JSON.parse(e.postData.contents);
+    }
+    var action = payload.action || 'sync';
+
+    var prodSheet = getOrCreateSheet(ss, 'Produk', ['ID', 'Nama', 'Kategori', 'Harga', 'Stok', 'Satuan', 'Barcode', 'Deskripsi', 'Gambar', 'Update_Terakhir']);
+    var trxSheet = getOrCreateSheet(ss, 'Transaksi', ['ID_Transaksi', 'Tanggal', 'Pelanggan', 'Metode_Bayar', 'Kasir', 'Item_Ringkasan', 'Total', 'Diskon', 'Uang_Diterima', 'Kembalian']);
+    var userSheet = getOrCreateSheet(ss, 'Users', ['ID', 'Nama', 'Username', 'Password', 'Role']);
+
+    if (action === 'sync') {
+      if (payload.products && Array.isArray(payload.products)) {
+        var lastRow = prodSheet.getLastRow();
+        if (lastRow > 1) {
+          prodSheet.getRange(2, 1, lastRow - 1, 10).clearContent();
+        }
+        var prodRows = payload.products.map(function(p) {
+          return [p.id, p.name, p.cat, p.price, p.stock, p.unit, p.barcode || '', p.desc || '', p.img || '', new Date()];
+        });
+        if (prodRows.length > 0) {
+          prodSheet.getRange(2, 1, prodRows.length, 10).setValues(prodRows);
+        }
+      }
+
+      if (payload.transactions && Array.isArray(payload.transactions)) {
+        var lastTrxRow = trxSheet.getLastRow();
+        if (lastTrxRow > 1) {
+          trxSheet.getRange(2, 1, lastTrxRow - 1, 10).clearContent();
+        }
+        var trxRows = payload.transactions.map(function(t) {
+          var itemsDesc = Array.isArray(t.items) ? t.items.map(function(it){ return it.name + ' (' + it.qty + 'x)'; }).join(', ') : (t.itemsDesc || '');
+          return [t.id, t.date, t.customer, t.pay, t.kasir, itemsDesc, t.total, t.disc || 0, t.cash || t.total, t.change || 0];
+        });
+        if (trxRows.length > 0) {
+          trxSheet.getRange(2, 1, trxRows.length, 10).setValues(trxRows);
+        }
+      }
+
+      if (payload.users && Array.isArray(payload.users)) {
+        var lastUserRow = userSheet.getLastRow();
+        if (lastUserRow > 1) {
+          userSheet.getRange(2, 1, lastUserRow - 1, 5).clearContent();
+        }
+        var userRows = payload.users.map(function(u) {
+          return [u.id, u.name, u.username, u.password || u.pass, u.role];
+        });
+        if (userRows.length > 0) {
+          userSheet.getRange(2, 1, userRows.length, 5).setValues(userRows);
+        }
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({ ok: true, message: 'Sync berhasil tersimpan di Google Sheets' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({ ok: true, message: 'Aksi diproses' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
+
+function copyScript() {
+  navigator.clipboard.writeText(FULL_APPS_SCRIPT_CODE);
+  showToast('Kode Google Apps Script disalin ke clipboard! ✓');
+}
+
+// ==========================================
+// 6. BARCODE SCANNER
+// ==========================================
+let barcodeStream = null, barcodeReader = null, barcodeScanning = false, barcodeFacingMode = 'environment';
+
+function setBarcodeStatus(m) {
+  const el = document.getElementById('barcodeStatus');
+  if (el) el.textContent = m;
+}
+
+function normalizeBarcode(v) {
+  return String(v || '').trim().replace(/\s+/g, '');
+}
+
+function findProductByBarcode(code) {
+  const norm = normalizeBarcode(code);
+  return products.find(p => normalizeBarcode(p.barcode) === norm || String(p.id) === norm);
+}
+
+async function openBarcodeScanner() {
+  document.getElementById('barcodeModal').classList.remove('hidden');
+  barcodeFacingMode = 'environment';
+  setBarcodeStatus('Meminta izin akses kamera...');
+  await startBarcodeScanner();
+}
+
+function closeBarcodeScanner() {
+  barcodeScanning = false;
+  if (barcodeReader && barcodeReader.reset) {
+    try { barcodeReader.reset(); } catch (e) {}
+  }
+  barcodeReader = null;
+  if (barcodeStream) {
+    barcodeStream.getTracks().forEach(t => t.stop());
+    barcodeStream = null;
+  }
+  const video = document.getElementById('barcodeVideo');
+  if (video) {
+    video.pause();
+    video.srcObject = null;
+  }
+  document.getElementById('barcodeModal').classList.add('hidden');
+}
+
+async function switchBarcodeCamera() {
+  barcodeFacingMode = barcodeFacingMode === 'environment' ? 'user' : 'environment';
+  await startBarcodeScanner();
+}
+
+async function startBarcodeScanner() {
+  if (barcodeStream) {
+    barcodeStream.getTracks().forEach(t => t.stop());
+    barcodeStream = null;
+  }
+  if (barcodeReader && barcodeReader.reset) {
+    try { barcodeReader.reset(); } catch (e) {}
+  }
+
+  const video = document.getElementById('barcodeVideo');
+  if (!video) return;
+
+  try {
+    barcodeStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: barcodeFacingMode }, width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false
+    });
+    video.srcObject = barcodeStream;
+    await video.play();
+    barcodeScanning = true;
+    setBarcodeStatus('Kamera aktif. Arahkan barcode tepat ke garis merah.');
+
+    if ('BarcodeDetector' in window) {
+      const formats = await BarcodeDetector.getSupportedFormats();
+      const wanted = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'codabar', 'itf'];
+      const detector = new BarcodeDetector({ formats: wanted.filter(x => formats.includes(x)) });
+      scanWithBarcodeDetector(detector, video);
+    } else if (window.ZXing && window.ZXing.BrowserMultiFormatReader) {
+      barcodeReader = new ZXing.BrowserMultiFormatReader();
+      barcodeReader.decodeFromVideoElement(video, (result, error) => {
+        if (result && barcodeScanning) handleBarcodeResult(result.getText());
+      });
+    } else {
+      setBarcodeStatus('Browser tidak mendukung scanner. Gunakan Google Chrome Android terbaru.');
+    }
+  } catch (err) {
+    console.error('Camera error:', err);
+    setBarcodeStatus('Kamera gagal diakses: ' + err.message);
+  }
+}
+
+async function scanWithBarcodeDetector(detector, video) {
+  if (!barcodeScanning) return;
+  try {
+    const codes = await detector.detect(video);
+    if (codes.length) handleBarcodeResult(codes[0].rawValue);
+  } catch (e) {}
+  if (barcodeScanning) requestAnimationFrame(() => scanWithBarcodeDetector(detector, video));
+}
+
+function handleBarcodeResult(rawValue) {
+  const code = normalizeBarcode(rawValue);
+  const p = findProductByBarcode(code);
+  if (p) {
+    closeBarcodeScanner();
+    addToCart(p.id);
+    showToast('Barcode cocok: ' + p.name + ' (+1 ke keranjang)');
+  } else {
+    setBarcodeStatus('Barcode ' + code + ' belum terdaftar. Tambahkan di menu Produk.');
+  }
+}
+
+// ==========================================
+// 7. LOGIN & USER ACCESS
+// ==========================================
+function togglePass() {
+  const i = document.getElementById('loginPass');
+  i.type = i.type === 'password' ? 'text' : 'password';
+}
+
+function fillLogin(u, p) {
+  document.getElementById('loginUser').value = u;
+  document.getElementById('loginPass').value = p;
+  showToast('Akun ' + u + ' terisi! Klik tombol Masuk');
+}
+
+document.getElementById('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value.trim();
+  
+  const found = users.find(x => x.username.toLowerCase() === u.toLowerCase() && x.pass === p);
+  if (!found) {
+    alert('Username atau password salah! Coba login: admin / admin123');
+    return;
+  }
+
+  currentUser = found;
+  localStorage.setItem('aljaya_session', JSON.stringify(found));
+  enterApp();
+});
+
+function enterApp() {
+  document.getElementById('loginView').classList.add('hidden');
+  document.getElementById('appView').classList.remove('hidden');
+  document.getElementById('currentUserName').textContent = currentUser.name;
+  document.getElementById('currentUserRole').textContent = currentUser.role + ' • @' + currentUser.username;
+  document.getElementById('helloName').textContent = currentUser.name.split(' ')[0] + '!';
+  
+  // Update header user icon
+  const headerIcon = document.getElementById('headerUserIcon');
+  if (headerIcon) {
+    headerIcon.outerHTML = `<div id="headerUserIcon">${getUserIconBadge(currentUser.role, 'md')}</div>`;
+  }
+
+  renderAll();
+  if (sheetsConfigured()) {
+    updateSyncStatusUI('connected', 'Siap');
+  } else {
+    updateSyncStatusUI('unconfigured');
+  }
+}
+
+function logout() {
+  localStorage.removeItem('aljaya_session');
+  location.reload();
+}
+
+const sess = JSON.parse(localStorage.getItem('aljaya_session') || 'null');
+if (sess) {
+  currentUser = sess;
+  setTimeout(enterApp, 50);
+}
+
+// ==========================================
+// 8. VIEWS & NAVIGATION
+// ==========================================
+function showView(v) {
+  document.querySelectorAll('.view').forEach(s => s.classList.add('hidden'));
+  const target = document.getElementById('view-' + v);
+  if (target) target.classList.remove('hidden');
+  document.querySelectorAll('.navbtn').forEach(b => b.classList.toggle('active-nav', b.dataset.view === v));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  if (v === 'products') renderProducts();
+  if (v === 'pos') renderPOS();
+  if (v === 'history') renderHistory();
+  if (v === 'users') renderUsers();
+  if (v === 'sheets') renderSheetPreview();
+}
+
+function onGlobalSearch(v) {
+  showView('products');
+  const el = document.getElementById('prodSearch');
+  if (el) el.value = v;
+  renderProducts();
+}
+
+function setProdLayout(l) {
+  prodLayout = l;
+  document.getElementById('productGrid').classList.toggle('hidden', l !== 'grid');
+  document.getElementById('productList').classList.toggle('hidden', l !== 'list');
+  document.getElementById('btnGrid').className = l === 'grid' ? 'px-3 py-1.5 rounded-full text-xs font-bold bg-white shadow' : 'px-3 py-1.5 rounded-full text-xs font-bold';
+  document.getElementById('btnList').className = l === 'list' ? 'px-3 py-1.5 rounded-full text-xs font-bold bg-white shadow' : 'px-3 py-1.5 rounded-full text-xs font-bold';
+}
+
+// ==========================================
+// 9. PRODUCTS & STOCK MANAGEMENT
+// ==========================================
+function productCard(p, forDash = false) {
+  const st = stockStatus(p.stock);
+  return `
+    <div class="bg-white rounded-[20px] overflow-hidden card-shadow group">
+      <div class="relative">
+        <img src="${p.img}" onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=600'" class="w-full product-img">
+        <span class="absolute top-2 left-2 ${st.c} text-[10px] font-black px-2 py-1 rounded-full">${st.label} • ${p.stock} ${p.unit}</span>
+        <span class="absolute top-2 right-2 bg-white/90 text-[10px] font-bold px-2 py-1 rounded-full text-slate-700">${p.cat}</span>
+      </div>
+      <div class="p-3">
+        <p class="font-extrabold text-[13px] leading-tight line-clamp-2 min-h-[34px] text-slate-800">${p.name}</p>
+        <p class="text-[11px] text-slate-400 line-clamp-1">${p.barcode ? 'Barcode: ' + p.barcode : (p.desc || '')}</p>
+        <div class="flex justify-between items-center mt-2">
+          <b class="text-[#0A4D7A] text-sm">${fmt(p.price)}</b>
+          <span class="text-[10px] bg-slate-100 px-2 py-1 rounded-full font-bold text-slate-600">ID ${String(p.id).padStart(3, '0')}</span>
+        </div>
+        <div class="flex gap-1.5 mt-3">
+          <button onclick="addToCart(${p.id})" ${p.stock == 0 ? 'disabled' : ''} class="flex-1 ${p.stock == 0 ? 'bg-slate-200 text-slate-400' : 'bg-[#FF6B35] hover:bg-orange-600 text-white'} py-2 rounded-full text-[11px] font-black transition">
+            + KERANJANG
+          </button>
+          <button onclick="openProductModal(${p.id})" class="w-8 h-8 grid place-items-center bg-slate-100 hover:bg-slate-200 rounded-full text-xs transition" title="Edit">✎</button>
+          <button onclick="deleteProduct(${p.id})" class="w-8 h-8 grid place-items-center bg-red-50 hover:bg-red-100 text-red-500 rounded-full text-xs transition" title="Hapus"><i class="fa fa-trash"></i></button>
+        </div>
+        <div class="flex items-center gap-1 mt-2">
+          <button onclick="adjustStock(${p.id}, -1)" class="flex-1 bg-slate-100 hover:bg-slate-200 rounded-full text-xs font-bold py-1 text-slate-700 transition">-1 Stok</button>
+          <button onclick="adjustStock(${p.id}, 5)" class="flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold py-1 transition">+5 Restock</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderProducts() {
+  const q = (document.getElementById('prodSearch')?.value || '').toLowerCase();
+  const cat = document.getElementById('catFilter')?.value;
+  const sf = document.getElementById('stockFilter')?.value;
+
+  const filtered = products.filter(p => {
+    const matchQ = !q || p.name.toLowerCase().includes(q) || (p.barcode && p.barcode.toLowerCase().includes(q));
+    const matchCat = !cat || p.cat === cat;
+    const matchStock = !sf || (sf === 'aman' && p.stock > 10) || (sf === 'menipis' && p.stock > 0 && p.stock <= 10) || (sf === 'habis' && p.stock == 0);
+    return matchQ && matchCat && matchStock;
+  });
+
+  const grid = document.getElementById('productGrid');
+  if (grid) {
+    grid.innerHTML = filtered.length 
+      ? filtered.map(p => productCard(p)).join('') 
+      : `<div class="col-span-full bg-white rounded-2xl p-8 text-center text-slate-400 font-bold">Produk tidak ditemukan</div>`;
+  }
+
+  const tbody = document.getElementById('productTableBody');
+  if (tbody) {
+    tbody.innerHTML = filtered.map(p => {
+      const st = stockStatus(p.stock);
+      return `
+        <tr class="border-t hover:bg-slate-50">
+          <td class="p-3">
+            <div class="flex gap-2 items-center">
+              <img src="${p.img}" class="w-10 h-10 rounded-xl object-cover shrink-0">
+              <div>
+                <b class="text-xs text-slate-800">${p.name}</b>
+                <p class="text-[10px] text-slate-400 font-mono">${p.barcode || 'ID ' + p.id}</p>
+              </div>
+            </div>
+          </td>
+          <td class="p-3 text-xs text-slate-600">${p.cat}</td>
+          <td class="p-3 font-bold text-xs text-[#0A4D7A]">${fmt(p.price)}</td>
+          <td class="p-3">
+            <button onclick="adjustStock(${p.id}, -1)" class="px-2 py-0.5 bg-slate-100 rounded-full text-xs font-bold">-</button>
+            <b class="mx-1 text-xs">${p.stock}</b>
+            <button onclick="adjustStock(${p.id}, 1)" class="px-2 py-0.5 bg-slate-100 rounded-full text-xs font-bold">+</button>
+          </td>
+          <td class="p-3"><span class="${st.c} text-[10px] px-2 py-1 rounded-full font-black">${st.t}</span></td>
+          <td class="p-3 text-right">
+            <button onclick="openProductModal(${p.id})" class="bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full text-xs font-bold transition">Edit</button>
+            <button onclick="deleteProduct(${p.id})" class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-full text-xs font-bold transition">Hapus</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+  renderSheetPreview();
+}
+
+function adjustStock(id, d) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  p.stock = Math.max(0, p.stock + d);
+  saveAll();
+  renderAll();
+  showToast(`Stok ${p.name} diupdate jadi ${p.stock}`);
+  syncSheets(false);
+}
+
+function deleteProduct(id) {
+  if (!confirm('Hapus produk ini dari toko & database Sheets?')) return;
+  products = products.filter(p => p.id !== id);
+  saveAll();
+  renderAll();
+  showToast('Produk dihapus & tersinkronisasi');
+  syncSheets(false);
+}
+
+let editingImgData = "";
+document.getElementById('pImageFile')?.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    editingImgData = ev.target.result;
+    document.getElementById('imgPreview').innerHTML = `<img src="${editingImgData}" class="w-full h-full object-cover">`;
+    document.getElementById('pImageUrl').value = '(gambar terupload)';
+  };
+  r.readAsDataURL(f);
+});
+
+document.getElementById('pImageUrl')?.addEventListener('input', e => {
+  if (e.target.value.startsWith('http')) {
+    editingImgData = e.target.value;
+    document.getElementById('imgPreview').innerHTML = `<img src="${editingImgData}" class="w-full h-full object-cover">`;
+  }
+});
+
+function openProductModal(id = null) {
+  document.getElementById('productModal').classList.remove('hidden');
+  editingImgData = "";
+  if (id) {
+    const p = products.find(x => x.id === id);
+    document.getElementById('pmTitle').textContent = 'Edit Produk';
+    document.getElementById('pId').value = p.id;
+    document.getElementById('pName').value = p.name;
+    document.getElementById('pBarcode').value = p.barcode || '';
+    document.getElementById('pCat').value = p.cat;
+    document.getElementById('pPrice').value = p.price;
+    document.getElementById('pStock').value = p.stock;
+    document.getElementById('pUnit').value = p.unit || 'pack';
+    document.getElementById('pDesc').value = p.desc || '';
+    document.getElementById('pImageUrl').value = p.img || '';
+    editingImgData = p.img || '';
+    document.getElementById('imgPreview').innerHTML = `<img src="${p.img}" class="w-full h-full object-cover">`;
+  } else {
+    document.getElementById('pmTitle').textContent = 'Tambah Produk Baru';
+    document.getElementById('productForm').reset();
+    document.getElementById('pId').value = '';
+    document.getElementById('pBarcode').value = '';
+    document.getElementById('imgPreview').innerHTML = '🧊';
+  }
+}
+
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('hidden');
+}
+
+document.getElementById('productForm')?.addEventListener('submit', e => {
+  e.preventDefault();
+  const id = document.getElementById('pId').value;
+  const data = {
+    name: document.getElementById('pName').value.trim(),
+    barcode: normalizeBarcode(document.getElementById('pBarcode').value),
+    cat: document.getElementById('pCat').value,
+    price: +document.getElementById('pPrice').value,
+    stock: +document.getElementById('pStock').value,
+    unit: document.getElementById('pUnit').value || 'pack',
+    desc: document.getElementById('pDesc').value.trim(),
+    img: editingImgData || document.getElementById('pImageUrl').value || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600'
+  };
+
+  if (id) {
+    const existing = products.find(p => p.id == id);
+    if (existing) Object.assign(existing, data);
+    showToast('Produk berhasil diperbarui ✓');
+  } else {
+    data.id = Date.now();
+    products.unshift(data);
+    showToast('Produk baru berhasil ditambahkan ✓');
+  }
+
+  saveAll();
+  closeModal('productModal');
+  renderAll();
+  syncSheets(false);
+});
+
+// ==========================================
+// 10. POS / KASIR & CART
+// ==========================================
+function setPosCat(c, el) {
+  posCat = c;
+  document.querySelectorAll('.poscat').forEach(b => b.classList.remove('chip-active'));
+  el.classList.add('chip-active');
+  renderPOS();
+}
+
+function renderPOS() {
+  const q = (document.getElementById('posSearch')?.value || '').toLowerCase();
+  const f = products.filter(p => (!posCat || p.cat === posCat) && (!q || p.name.toLowerCase().includes(q) || (p.barcode && p.barcode.toLowerCase().includes(q))));
+  
+  const grid = document.getElementById('posGrid');
+  if (grid) {
+    grid.innerHTML = f.map(p => `
+      <button onclick="addToCart(${p.id})" class="bg-white rounded-[18px] overflow-hidden text-left card-shadow disabled:opacity-50 hover:shadow-md transition" ${p.stock == 0 ? 'disabled' : ''}>
+        <img src="${p.img}" onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=600'" class="w-full h-[110px] object-cover">
+        <div class="p-3">
+          <p class="font-extrabold text-xs leading-tight line-clamp-2 min-h-[28px] text-slate-800">${p.name}</p>
+          <div class="flex justify-between mt-1 items-center">
+            <b class="text-[#0A4D7A] text-sm">${fmt(p.price)}</b>
+            <span class="text-[10px] font-bold ${p.stock == 0 ? 'text-red-500' : p.stock <= 10 ? 'text-amber-600' : 'text-emerald-600'}">
+              ${p.stock == 0 ? 'Habis' : 'Stok ' + p.stock}
+            </span>
+          </div>
+        </div>
+      </button>
+    `).join('') || '<p class="col-span-full text-center text-slate-400 font-bold py-8">Tidak ada produk</p>';
+  }
+}
+
+function addToCart(id) {
+  const p = products.find(x => x.id === id);
+  if (!p || p.stock == 0) return;
+  const ex = cart.find(c => c.id === id);
+  if (ex) {
+    if (ex.qty >= p.stock) {
+      showToast('Stok tidak cukup (Maksimal ' + p.stock + ')');
+      return;
+    }
+    ex.qty++;
+  } else {
+    cart.push({ id: p.id, name: p.name, price: p.price, qty: 1 });
+  }
+  renderCart();
+  showToast('Ditambahkan: ' + p.name);
+}
+
+function renderCart() {
+  const el = document.getElementById('cartItems');
+  if (!el) return;
+  if (!cart.length) {
+    el.innerHTML = `
+      <div class="text-center py-8 text-slate-400">
+        <p class="text-3xl">🛒</p>
+        <p class="text-xs font-bold mt-1">Keranjang kosong<br>Klik produk untuk menambah</p>
+      </div>
+    `;
+  } else {
+    el.innerHTML = cart.map((c, i) => `
+      <div class="flex gap-2 items-center bg-slate-50 rounded-2xl p-2 border border-slate-100">
+        <div class="flex-1">
+          <p class="text-xs font-extrabold leading-tight text-slate-800">${c.name}</p>
+          <p class="text-[11px] text-slate-500">${fmt(c.price)} x ${c.qty}</p>
+        </div>
+        <div class="flex items-center gap-1">
+          <button onclick="chQty(${i}, -1)" class="w-7 h-7 bg-white rounded-full shadow text-sm font-black">-</button>
+          <b class="w-5 text-center text-sm">${c.qty}</b>
+          <button onclick="chQty(${i}, 1)" class="w-7 h-7 bg-white rounded-full shadow text-sm font-black">+</button>
+        </div>
+        <b class="text-xs w-[74px] text-right text-slate-800">${fmt(c.price * c.qty)}</b>
+        <button onclick="cart.splice(${i}, 1); renderCart()" class="text-red-400 hover:text-red-600 px-1 font-bold">✕</button>
+      </div>
+    `).join('');
+  }
+
+  const sub = cart.reduce((a, c) => a + c.price * c.qty, 0);
+  const discPercent = +(document.getElementById('discountSel')?.value || 0);
+  const discAmount = sub * (discPercent / 100);
+  const total = sub - discAmount;
+
+  document.getElementById('subTotal').textContent = fmt(sub);
+  document.getElementById('grandTotal').textContent = fmt(total);
+  document.getElementById('cartBadge').textContent = cart.reduce((a, c) => a + c.qty, 0);
+  document.getElementById('cartInfo').textContent = `${cart.reduce((a, c) => a + c.qty, 0)} item • Kasir: ${currentUser?.name || 'Admin'}`;
+  calcChange(total);
+}
+
+function chQty(i, d) {
+  const item = cart[i];
+  const p = products.find(x => x.id === item.id);
+  item.qty += d;
+  if (item.qty <= 0) cart.splice(i, 1);
+  if (p && item.qty > p.stock) {
+    item.qty = p.stock;
+    showToast('Maksimal stok tercapai');
+  }
+  renderCart();
+}
+
+function clearCart() {
+  cart = [];
+  renderCart();
+}
+
+function setPay(m, el) {
+  payMethod = m;
+  document.querySelectorAll('.paybtn').forEach(b => b.className = 'paybtn bg-slate-100 py-2 rounded-xl text-xs font-bold text-slate-700');
+  el.className = 'paybtn bg-[#0A4D7A] text-white py-2 rounded-xl text-xs font-bold';
+}
+
+function getTotal() {
+  const sub = cart.reduce((a, c) => a + c.price * c.qty, 0);
+  const disc = +(document.getElementById('discountSel')?.value || 0);
+  return sub - (sub * (disc / 100));
+}
+
+function calcChange() {
+  const cash = +document.getElementById('cashInput')?.value || 0;
+  const total = getTotal();
+  document.getElementById('changeText').textContent = fmt(Math.max(0, cash - total));
+}
+
+function checkout() {
+  if (!cart.length) {
+    showToast('Keranjang masih kosong!');
+    return;
+  }
+  const total = getTotal();
+  const cash = +document.getElementById('cashInput')?.value || total;
+  if (payMethod === 'Tunai' && cash < total) {
+    showToast('Uang diterima kurang dari total tagihan!');
+    return;
+  }
+
+  const trx = {
+    id: 'ALJ-' + new Date().toISOString().slice(2, 10).replace(/-/g, '') + '-' + String(transactions.length + 1).padStart(3, '0'),
+    date: new Date().toISOString(),
+    customer: document.getElementById('custName')?.value.trim() || 'Pelanggan Umum',
+    pay: payMethod,
+    items: JSON.parse(JSON.stringify(cart)),
+    total,
+    kasir: currentUser ? currentUser.name : 'Admin Jaya',
+    cash,
+    change: Math.max(0, cash - total),
+    disc: +(document.getElementById('discountSel')?.value || 0)
+  };
+
+  // Kurangi stok produk
+  cart.forEach(c => {
+    const p = products.find(x => x.id === c.id);
+    if (p) p.stock = Math.max(0, p.stock - c.qty);
+  });
+
+  transactions.unshift(trx);
+  saveAll();
+  lastReceipt = trx;
+  cart = [];
+  document.getElementById('cashInput').value = '';
+  document.getElementById('custName').value = '';
+  renderCart();
+  renderAll();
+  openReceipt(trx);
+  showToast('Transaksi Berhasil! Stok berkurang & tersinkron');
+  syncSheets(false);
+}
+
+// ==========================================
+// 11. STRUK THERMAL & PRINTING
+// ==========================================
+function buildReceipt(trx) {
+  const d = new Date(trx.date);
+  return `
+    <div style="padding:14px 10px 8px;text-align:center">
+      <img src="${LOGO}" style="width:92%;height:62px;object-fit:contain;margin:0 auto">
+      <div style="border-top:1.5px dashed #000;margin:8px 0"></div>
+      <p style="font-size:11px;line-height:1.4">
+        <b>2AL JAYA Frozen Food</b><br>
+        Jl. Raya Frozen No. 88, Jakarta<br>
+        WA: 0812-3456-7890 • Halal & Fresh<br>
+        --------------------------------<br>
+        No: ${trx.id}<br>
+        ${d.toLocaleDateString('id-ID')} ${d.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})} • Kasir: ${trx.kasir}<br>
+        Plg: ${trx.customer} • ${trx.pay}<br>
+        --------------------------------
+      </p>
+      <div style="text-align:left;font-size:11px;line-height:1.5">
+        ${trx.items.map(it => `
+          <div style="display:flex;justify-content:space-between;gap:6px">
+            <span style="flex:1">${it.name}<br>&nbsp;&nbsp;${it.qty} x ${Number(it.price).toLocaleString('id-ID')}</span>
+            <b>${Number(it.price * it.qty).toLocaleString('id-ID')}</b>
+          </div>
+        `).join('')}
+      </div>
+      <div style="border-top:1.5px dashed #000;margin:8px 0"></div>
+      <p style="font-size:11px;text-align:right;line-height:1.6">
+        Subtotal: Rp ${trx.items.reduce((a,c) => a + c.price * c.qty, 0).toLocaleString('id-ID')}<br>
+        ${trx.disc ? `Diskon ${trx.disc}%: -Rp ${(trx.items.reduce((a,c) => a + c.price * c.qty, 0) * trx.disc / 100).toLocaleString('id-ID')}<br>` : ''}
+        <b style="font-size:13px">TOTAL: Rp ${Number(trx.total).toLocaleString('id-ID')}</b><br>
+        Bayar: Rp ${Number(trx.cash || trx.total).toLocaleString('id-ID')} • Kembali: Rp ${Number(trx.change || 0).toLocaleString('id-ID')}
+      </p>
+      <div style="border-top:1.5px dashed #000;margin:8px 0"></div>
+      <p style="font-size:10px;line-height:1.4">
+        *** TERIMA KASIH ***<br>
+        Simpan struk untuk garansi & penukaran<br>
+        ❄ Tetap Dingin, Tetap Segar ❄<br>
+        IG: @aljaya.frozenfood
+      </p>
+      <div style="margin:8px auto 2px;width:110px;height:34px;background:repeating-linear-gradient(90deg,#000 0 2px,#fff 2px 4px,#000 4px 7px,#fff 7px 9px)"></div>
+      <p style="font-size:9px">${trx.id}</p>
+    </div>
+  `;
+}
+
+function openReceipt(trx) {
+  lastReceipt = trx;
+  document.getElementById('receiptPaper').innerHTML = buildReceipt(trx);
+  document.getElementById('receiptModal').classList.remove('hidden');
+}
+
+function changePaper(v) {
+  const w = v === '58' ? '302px' : '380px';
+  document.getElementById('receiptPaper').style.maxWidth = w;
+  document.getElementById('receiptPaper').style.width = v === '58' ? '58mm' : '80mm';
+  document.getElementById('jaggedEl').style.maxWidth = w;
+  document.getElementById('printArea').style.width = v === '58' ? '58mm' : '80mm';
+}
+
+function printReceipt() {
+  if (!lastReceipt) return;
+  const pa = document.getElementById('printArea');
+  pa.innerHTML = `<div style="font-family:'JetBrains Mono',monospace;width:58mm">${buildReceipt(lastReceipt)}</div>`;
+  setTimeout(() => window.print(), 100);
+}
+
+function shareWA() {
+  if (!lastReceipt) return;
+  const txt = `Struk 2AL JAYA Frozen Food%0ANo: ${lastReceipt.id}%0APelanggan: ${lastReceipt.customer}%0ATotal: ${fmt(lastReceipt.total)}%0ATerima kasih sudah berbelanja!`;
+  window.open('https://wa.me/?text=' + txt, '_blank');
+}
+
+function deleteTransaction(id) {
+  const trx = transactions.find(t => String(t.id) === String(id));
+  if (!trx) return showToast('Transaksi tidak ditemukan');
+  if (!confirm('Hapus transaksi ' + trx.id + '? Data yang dihapus tidak dapat dikembalikan.')) return;
+  transactions = transactions.filter(t => String(t.id) !== String(id));
+  saveAll();
+  renderAll();
+  showToast('Transaksi dihapus');
+  syncSheets(false);
+}
+
+function clearTransactions() {
+  if (!transactions.length) return showToast('Riwayat transaksi sudah kosong');
+  if (!confirm('Hapus SEMUA riwayat transaksi?')) return;
+  transactions = [];
+  saveAll();
+  renderAll();
+  showToast('Semua riwayat transaksi dihapus');
+  syncSheets(false);
+}
+
+function renderHistory() {
+  const list = document.getElementById('trxList');
+  if (!list) return;
+  list.innerHTML = transactions.map(t => `
+    <div class="bg-white rounded-2xl p-4 card-shadow flex flex-wrap gap-3 items-center justify-between">
+      <div class="flex gap-3 items-center">
+        <div class="w-11 h-11 bg-cyan-50 rounded-2xl grid place-items-center text-xl text-[#0A4D7A]">
+          <i class="fa-solid fa-receipt"></i>
+        </div>
+        <div>
+          <p class="font-black text-sm text-slate-800">${t.id} • ${fmt(t.total)}</p>
+          <p class="text-[11px] text-slate-500">${new Date(t.date).toLocaleString('id-ID')} • ${t.customer} • ${t.pay} • ${t.items.reduce((a, c) => a + c.qty, 0)} item</p>
+          <p class="text-[11px] text-slate-400">${t.items.map(i => i.name + ' x' + i.qty).join(', ')}</p>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick='openReceipt(${JSON.stringify(t)})' class="bg-[#0A4D7A] hover:bg-[#083a5e] text-white px-4 py-2 rounded-full text-xs font-black transition">Lihat Struk</button>
+        <button onclick='lastReceipt=${JSON.stringify(t)};printAT58XBluetooth()' class="bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 px-3 py-2 rounded-full text-xs font-bold transition flex items-center gap-1">
+          <i class="fa-solid fa-print"></i> AT-58X
+        </button>
+        <button onclick="deleteTransaction('${t.id}')" class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-full text-xs font-bold transition">🗑 Hapus</button>
+      </div>
+    </div>
+  `).join('') || '<p class="text-center text-slate-400 font-bold py-10">Belum ada transaksi</p>';
+}
+
+// ==========================================
+// 12. USER MANAGEMENT (VECTOR ICONS, NO PHOTOS)
+// ==========================================
+function renderUsers() {
+  const grid = document.getElementById('userGrid');
+  if (!grid) return;
+  grid.innerHTML = users.map(u => `
+    <div class="bg-white rounded-[20px] p-4 card-shadow">
+      <div class="flex gap-3 items-center">
+        ${getUserIconBadge(u.role, 'lg')}
+        <div>
+          <p class="font-black text-sm text-slate-800">${u.name}</p>
+          <p class="text-[11px] text-slate-500">@${u.username} • <b>${u.role}</b></p>
+        </div>
+        <span class="ml-auto bg-emerald-100 text-emerald-700 text-[10px] font-black px-2 py-1 rounded-full">AKTIF</span>
+      </div>
+      <div class="flex gap-2 mt-3">
+        <button onclick="fillLogin('${u.username}','${u.pass}');logoutQuick('${u.username}','${u.pass}')" class="flex-1 bg-slate-100 hover:bg-slate-200 py-2 rounded-full text-[11px] font-bold text-slate-700 transition">Coba Login</button>
+        <button onclick="openUserModal(${u.id})" class="flex-1 bg-[#0A4D7A] hover:bg-[#083a5e] text-white py-2 rounded-full text-[11px] font-bold transition">Edit</button>
+        <button onclick="deleteUser(${u.id})" class="w-9 bg-red-50 hover:bg-red-100 text-red-500 rounded-full transition">🗑</button>
+      </div>
+      <p class="text-[10px] text-slate-400 mt-2 mono">pass: ${u.pass}</p>
+    </div>
+  `).join('');
+}
+
+function logoutQuick(u, p) {
+  const f = users.find(x => x.username === u);
+  if (!f) return;
+  currentUser = f;
+  localStorage.setItem('aljaya_session', JSON.stringify(f));
+  document.getElementById('loginView').classList.add('hidden');
+  document.getElementById('appView').classList.remove('hidden');
+  enterApp();
+  showView('dashboard');
+}
+
+function openUserModal(id = null) {
+  document.getElementById('userModal').classList.remove('hidden');
+  if (id) {
+    const u = users.find(x => x.id === id);
+    document.getElementById('umTitle').textContent = 'Edit Pengguna';
+    document.getElementById('uId').value = u.id;
+    document.getElementById('uName').value = u.name;
+    document.getElementById('uUsername').value = u.username;
+    document.getElementById('uPass').value = u.pass;
+    document.getElementById('uRole').value = u.role;
+    updateModalRoleIcon(u.role);
+  } else {
+    document.getElementById('umTitle').textContent = 'Tambah Pengguna';
+    document.getElementById('userForm').reset();
+    document.getElementById('uId').value = '';
+    document.getElementById('uRole').value = 'Kasir';
+    updateModalRoleIcon('Kasir');
+  }
+}
+
+function deleteUser(id) {
+  if (users.length <= 1) return showToast('Minimal harus ada 1 user!');
+  if (!confirm('Hapus pengguna ini?')) return;
+  users = users.filter(u => u.id !== id);
+  saveAll();
+  renderUsers();
+  showToast('Pengguna dihapus');
+  syncSheets(false);
+}
+
+document.getElementById('userForm')?.addEventListener('submit', e => {
+  e.preventDefault();
+  const id = document.getElementById('uId').value;
+  const data = {
+    name: document.getElementById('uName').value.trim(),
+    username: document.getElementById('uUsername').value.trim(),
+    pass: document.getElementById('uPass').value.trim(),
+    role: document.getElementById('uRole').value
+  };
+
+  if (id) {
+    const old = users.find(u => u.id == id);
+    if (old) Object.assign(old, data);
+  } else {
+    data.id = Date.now();
+    users.push(data);
+  }
+
+  saveAll();
+  closeModal('userModal');
+  renderUsers();
+  showToast('Pengguna tersimpan ✓');
+  syncSheets(false);
+});
+
+// ==========================================
+// 13. SHEETS PREVIEW & DASHBOARD METRICS
+// ==========================================
+function renderSheetPreview() {
+  const tb = document.getElementById('sheetPreview');
+  if (tb) {
+    tb.innerHTML = products.slice(0, 8).map(p => {
+      const st = stockStatus(p.stock);
+      return `
+        <tr class="border-t hover:bg-slate-50">
+          <td class="p-2 mono">${String(p.id).slice(-4)}</td>
+          <td class="p-2 font-semibold text-slate-800">${p.name}</td>
+          <td class="p-2 text-center">${p.price.toLocaleString()}</td>
+          <td class="p-2 text-center font-bold">${p.stock}</td>
+          <td class="p-2 text-center"><span class="${st.c} px-2 py-0.5 rounded-full text-[9px] font-black">${st.t}</span></td>
+        </tr>
+      `;
+    }).join('');
+  }
+}
+
+function exportCSV() {
+  const csv = 'ID,Nama,Kategori,Harga,Stok,Status\n' + products.map(p => `${p.id},"${p.name}",${p.cat},${p.price},${p.stock},${stockStatus(p.stock).t}`).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = 'aljaya-produk.csv';
+  a.click();
+  showToast('File CSV diexport');
+}
+
+function renderAll() {
+  const statProducts = document.getElementById('statProducts');
+  if (statProducts) statProducts.textContent = products.length;
+  
+  const low = products.filter(p => p.stock <= 10).length;
+  const statLow = document.getElementById('statLow');
+  if (statLow) statLow.textContent = low + ' item';
+  
+  const statStock = document.getElementById('statStock');
+  if (statStock) statStock.textContent = products.reduce((a, p) => a + p.stock, 0);
+
+  const todayRev = transactions.filter(t => new Date(t.date).toDateString() === new Date().toDateString()).reduce((a, t) => a + t.total, 0);
+  const statRevenue = document.getElementById('statRevenue');
+  if (statRevenue) statRevenue.textContent = fmt(todayRev || transactions.reduce((a, t) => a + t.total, 0));
+
+  const statTrx = document.getElementById('statTrx');
+  if (statTrx) statTrx.textContent = transactions.length;
+
+  const miniChart = document.getElementById('miniChart');
+  if (miniChart) miniChart.innerHTML = [40, 65, 50, 80, 55, 90, 75].map(h => `<div class="flex-1 bg-cyan-300/80 rounded-t" style="height:${h}%"></div>`).join('');
+
+  const dashProds = document.getElementById('dashboardProducts');
+  if (dashProds) dashProds.innerHTML = products.slice(0, 8).map(p => productCard(p, true)).join('');
+
+  renderProducts();
+  renderPOS();
+  renderCart();
+  renderHistory();
+  renderUsers();
+  renderSheetPreview();
+}
+
+// Initial script display inside guide modal
+document.addEventListener('DOMContentLoaded', () => {
+  const pre = document.getElementById('codeScriptDisplay');
+  if (pre) pre.textContent = FULL_APPS_SCRIPT_CODE;
+  const input = document.getElementById('scriptUrl');
+  if (input && GOOGLE_APPS_SCRIPT_URL) input.value = GOOGLE_APPS_SCRIPT_URL;
+});
+
+// Initialization
+saveAll();
+if (sheetsConfigured()) {
+  pullSheets(false);
+}
+</script>
+</body>
+</html>

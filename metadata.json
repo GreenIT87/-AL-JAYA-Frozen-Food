@@ -1,0 +1,6 @@
+{
+  "name": "²AL JAYA Frozen Food - POS & Stok",
+  "description": "Aplikasi Kasir (POS), Manajemen Stok Frozen Food, Cetak Struk Thermal 58mm & Integrasi Google Sheets ²AL JAYA.",
+  "requestFramePermissions": ["camera", "microphone", "clipboard-write"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
